@@ -1,0 +1,27 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30114.105
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{B17F198C-219F-4FE1-AA07-50192E96D487}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "pax.chess", "src\pax.chess\pax.chess.csproj", "{1EF76861-DA0F-4E1E-8614-2F77687B13D7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1EF76861-DA0F-4E1E-8614-2F77687B13D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1EF76861-DA0F-4E1E-8614-2F77687B13D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1EF76861-DA0F-4E1E-8614-2F77687B13D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1EF76861-DA0F-4E1E-8614-2F77687B13D7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1EF76861-DA0F-4E1E-8614-2F77687B13D7} = {B17F198C-219F-4FE1-AA07-50192E96D487}
+	EndGlobalSection
+EndGlobal
