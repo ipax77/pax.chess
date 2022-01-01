@@ -40,6 +40,7 @@ public record Move
         Transformation = move.Transformation;
         Capture = move.Capture == null ? null : new(move.Capture);
         StateInfo = new(move.StateInfo);
+        PgnMove = move.PgnMove;
         Evaluation = move.Evaluation == null ? null : new(move.Evaluation);
     }
 }

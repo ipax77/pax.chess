@@ -326,6 +326,67 @@ public class Pgn
         return sb.ToString();
     }
 
+    public static string GetPgnMove(EngineMove move, State state)
+    {
+        Piece piece = state.Pieces.Single(s => s.Position == move.OldPosition);
+
+        if (piece.Type == PieceType.King && Math.Abs(move.OldPosition.X - move.NewPosition.X) > 1)
+        {
+            if (move.OldPosition.X < move.NewPosition.X)
+            {
+                return "O-O";
+            }
+            else
+            {
+                return "O-O-O";
+            }
+        }
+
+        Piece? capture = state.Pieces.FirstOrDefault(f => f.Position == move.NewPosition);
+
+        StringBuilder sb = new StringBuilder();
+        if (piece.Type != PieceType.Pawn)
+        {
+            sb.Append(Map.GetPieceString(piece.Type).ToUpper());
+        }
+        else if (capture != null)
+        {
+            sb.Append(Map.GetCharColumn(move.OldPosition.X));
+            sb.Append('x');
+        }
+        if (piece.Type == PieceType.Knight || piece.Type == PieceType.Rook)
+        {
+            var alternatePiece = state.Pieces.FirstOrDefault(x => x.Type == piece.Type && x.IsBlack == piece.IsBlack && x != piece);
+            if (alternatePiece != null)
+            {
+                var positions = Validation.Validate.GetMoves(alternatePiece, state);
+                if (positions.Contains(move.NewPosition))
+                {
+                    if (alternatePiece.Position.X == move.OldPosition.X)
+                    {
+                        sb.Append(move.OldPosition.Y + 1);
+                    }
+                    else
+                    {
+                        sb.Append(Map.GetCharColumn(move.OldPosition.X));
+                    }
+                }
+            }
+        }
+        if (capture != null && piece.Type != PieceType.Pawn)
+        {
+            sb.Append('x');
+        }
+        sb.Append(Map.GetCharColumn(move.NewPosition.X));
+        sb.Append(move.NewPosition.Y + 1);
+
+        if (move.Transformation != null && piece.Type == PieceType.Pawn)
+        {
+            sb.Append(Map.GetPieceString((PieceType)move.Transformation).ToUpper());
+        }
+        return sb.ToString();
+    }
+
     public record MoveHelper
     {
         public int MoveNumber { get; set; }

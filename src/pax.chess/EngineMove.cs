@@ -17,6 +17,14 @@ public record EngineMove
         NewPosition = newPosition;
         Transformation = transformation;
     }
+
+    public EngineMove(EngineMove move)
+    {
+        OldPosition = new(move.OldPosition);
+        NewPosition = new(move.NewPosition);
+        Transformation = move.Transformation;
+    }
+
     public override string ToString() => Map.GetEngineMoveString(this);
 }
 
@@ -24,7 +32,7 @@ public record EngineMoveNum : EngineMove
 {
     public int HalfMoveNumber { get; init; }
 
-    public EngineMoveNum(int num, int oldX, int oldY, int newX, int newY, PieceType? transfromation = null) : base(oldX, oldY, newX, newY, transfromation)
+    public EngineMoveNum(int num, EngineMove move) : base(move)
     {
         HalfMoveNumber = num;
     }

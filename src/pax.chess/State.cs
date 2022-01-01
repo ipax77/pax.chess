@@ -6,6 +6,7 @@ public record State
     public StateInfo Info { get; internal set; } = new StateInfo();
     public List<Piece> Pieces { get; internal set; } = new List<Piece>();
     public List<Move> Moves { get; internal set; } = new List<Move>();
+    public Move? CurrentMove { get; private set; }
 
     public State() { }
     public State(State state)
@@ -133,14 +134,15 @@ public record State
                 }
             }
         }
-
+        CurrentMove = move;
         Moves.Add(move);
         return move;
     }
 
-    internal void RevertMove()
+    public void RevertMove()
     {
         var move = Moves.Last();
+        Piece piece = Pieces.Single(s => s.Position == move.NewPosition);
 
         if (move.IsCastle)
         {
@@ -175,9 +177,16 @@ public record State
                 move.Piece.Type = PieceType.Pawn;
             }
         }
-        move.Piece.Position = move.OldPosition;
+        
+        piece.Position = move.OldPosition;
+        // move.Piece.Position = move.OldPosition;
+        
         Info.Set(move.StateInfo);
         Moves.RemoveAt(Moves.Count - 1);
+        if (Moves.Any())
+        {
+            CurrentMove = Moves.Last();
+        }
     }
 
     public bool IsCheck(Piece? king = null)
