@@ -64,7 +64,7 @@ public static class Map
 
     public static EngineMove? GetEngineMove(string? moveString)
     {
-        if (String.IsNullOrEmpty(moveString) || moveString.Length < 4)
+        if (String.IsNullOrEmpty(moveString) || moveString.Length < 4 || moveString == "0000")
         {
             return null;
         }
