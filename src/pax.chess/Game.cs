@@ -15,6 +15,7 @@ public class Game
     public Dictionary<string, string> Infos { get; internal set; } = new Dictionary<string, string>();
     public State State { get; internal set; } = new State();
     public State ObserverState { get; internal set; } = new State();
+    public Variation? CurrentVariation { get; private set; }
 
     public Game(string? fen = null)
     {
@@ -98,16 +99,6 @@ public class Game
             return moveState;
         }
     }
-
-    public List<Position> ValidPositions(Piece piece)
-    {
-        if (!Validate.IsMyTurn(piece, State))
-        {
-            return new List<Position>();
-        }
-        return Validate.GetMoves(piece, State);
-    }
-
 
     public string PgnMove(Move move, State state)
     {
@@ -196,8 +187,6 @@ public class Game
         }
     }
 
-
-
     public void ObserverMoveTo(int move)
     {
         if (ObserverMove > move)
@@ -216,21 +205,92 @@ public class Game
         }
     }
 
-    public void PvMoveForward()
+    public void ObserverMoveTo(Move move)
     {
-        if (ObserverState != null && State.Moves.Count >= ObserverMove + 1)
+        ObserverState.Moves.ForEach(f => f.Variation = null);
+
+        if (move.Variation == null)
         {
-            ObserverState.ExecuteMove(State.Moves[ObserverMove].EngineMove);
-            ObserverMove++;
+            ObserverMoveTo(move.HalfMoveNumber);
+        }
+        else
+        {
+            ObserverMoveTo(0);
+
+            List<Variation> variations = new List<Variation>() { move.Variation };
+            Move startMove = move.Variation.StartMove;
+            
+            while (startMove.Variation != null)
+            {
+                variations.Add(startMove.Variation);
+                startMove = startMove.Variation.StartMove;
+            }
+
+            for (int i = 0; i < startMove.HalfMoveNumber; i++)
+            {
+                ObserverState.ExecuteMove(State.Moves[i].EngineMove);
+            }
+
+            for (int i = variations.Count - 1; i >= 0; i--)
+            {
+                for (int j = 0; i < variations[i].Moves.Count; j++)
+                {
+                    var obsMove = ObserverState.ExecuteMove(variations[i].Moves[j].EngineMove);
+                    obsMove.Variation = variations[i];
+                }
+            }
         }
     }
 
-    public void PvMoveBackward()
+    public MoveState VariationMove(Piece piece, int x, int y, PieceType? transformation)
     {
-        if (ObserverState != null && ObserverMove > 0)
+        if (!State.Moves.Any())
         {
-            ObserverMove--;
-            ObserverState.RevertMove();
+            return Move(piece, x, y, transformation);
         }
+
+        Move startMove;
+        if (ObserverState.CurrentMove == null)
+        {
+            startMove = State.Moves[0];
+        }
+        else if (ObserverState.CurrentMove.Variation == null)
+        {
+            startMove = State.Moves.First(f => f.HalfMoveNumber == ObserverState.CurrentMove.HalfMoveNumber);
+        }
+        else if (ObserverState.CurrentMove.Variation.Moves.Last() != ObserverState.CurrentMove)
+        {
+            startMove = ObserverState.CurrentMove.Variation.Moves.First(f => f.HalfMoveNumber == ObserverState.CurrentMove.HalfMoveNumber);
+        }
+        else
+        {
+            startMove = ObserverState.CurrentMove.Variation.StartMove;
+        }
+
+        EngineMove move = new EngineMove(piece.Position, new Position(x, y), transformation);
+        var moveState = Validate.TryExecuteMove(move, ObserverState, move.Transformation);
+        if (moveState == MoveState.Ok && ObserverState.CurrentMove != null)
+        {
+            if (ObserverState.Info.IsCheckMate)
+            {
+                Termination = Termination.Mate;
+                Result = ObserverState.Info.BlackToMove ? Result.WhiteWin : Result.BlackWin;
+            }
+
+            if (startMove.Variation == null)
+            {
+                startMove.Variation = new Variation(startMove, ObserverState.CurrentMove);
+                startMove.Variations.Add(startMove.Variation);
+                ObserverState.CurrentMove.Variation = startMove.Variation;
+            }
+            else
+            {
+                startMove.Variation.Moves.Add(ObserverState.CurrentMove);
+                ObserverState.CurrentMove.Variation = startMove.Variation;
+            }
+        }
+        return moveState;
     }
+
+
 }

@@ -11,6 +11,9 @@ public record Move
     public StateInfo StateInfo { get; internal set; } = new StateInfo();
     public Evaluation? Evaluation { get; set; }
     public string PgnMove { get; set; } = String.Empty;
+    public List<Variation> Variations { get; init; } = new List<Variation>();
+    public Variation? Variation { get; internal set; } = null;
+
 
     public Move(Piece piece, Position newPosition, int number, PieceType? transformation = null)
     {

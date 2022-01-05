@@ -6,7 +6,7 @@ public record State
     public StateInfo Info { get; internal set; } = new StateInfo();
     public List<Piece> Pieces { get; internal set; } = new List<Piece>();
     public List<Move> Moves { get; internal set; } = new List<Move>();
-    public Move? CurrentMove { get; private set; }
+    public Move? CurrentMove { get; internal set; }
 
     public State() { }
     public State(State state)
@@ -134,6 +134,7 @@ public record State
                 }
             }
         }
+
         CurrentMove = move;
         Moves.Add(move);
         return move;
@@ -186,6 +187,9 @@ public record State
         if (Moves.Any())
         {
             CurrentMove = Moves.Last();
+        } else
+        {
+            CurrentMove = null;
         }
     }
 
@@ -205,5 +209,14 @@ public record State
             }
         }
         return false;
+    }
+
+    public List<Position> ValidPositions(Piece piece)
+    {
+        if (!Validate.IsMyTurn(piece, this))
+        {
+            return new List<Position>();
+        }
+        return Validate.GetMoves(piece, this);
     }
 }

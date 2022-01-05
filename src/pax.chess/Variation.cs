@@ -2,14 +2,11 @@
 
 public record Variation
 {
-    public int HalfMoveNumber { get; init; }
-    public int Evaluation { get; init; }
+    public Move StartMove { get; init; }
     public List<Move> Moves { get; init; }
-
-    public Variation(int halfMoveNumber, int eval, List<Move> moves)
+    public Variation(Move startMove, Move newMove)
     {
-        HalfMoveNumber = halfMoveNumber;
-        Evaluation = eval;
-        Moves = moves;
+        StartMove = startMove;
+        Moves = new List<Move>() { newMove };
     }
 }
