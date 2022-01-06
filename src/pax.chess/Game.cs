@@ -8,14 +8,14 @@ public class Game
     public string Name { get; set; } = String.Empty;
     public Guid Guid { get; private set; }
 
-    public int ObserverMove { get; private set; }
     public Time Time { get; set; }
     public Result Result { get; set; }
     public Termination Termination { get; set; }
     public Dictionary<string, string> Infos { get; internal set; } = new Dictionary<string, string>();
     public State State { get; internal set; } = new State();
     public State ObserverState { get; internal set; } = new State();
-    public Variation? CurrentVariation { get; private set; }
+    public Dictionary<Move, List<Variation>> Variations { get; init; } = new Dictionary<Move, List<Variation>>();
+    public string? StartFen { get; private set; }
 
     public Game(string? fen = null)
     {
@@ -23,13 +23,13 @@ public class Game
         ObserverState = new(State);
         Guid = Guid.NewGuid();
         Time = new Time(TimeSpan.FromMinutes(3), TimeSpan.FromSeconds(2));
+        StartFen = fen;
     }
 
     public Game(Game game)
     {
         State = new(game.State);
         ObserverState = new(game.ObserverState);
-        ObserverMove = game.ObserverMove;
         Guid = Guid.NewGuid();
         Time = new Time(TimeSpan.FromMinutes(3), TimeSpan.FromSeconds(2));
     }
@@ -38,7 +38,7 @@ public class Game
     {
         State = Fen.MapString(fen);
         ObserverState = Fen.MapString(fen);
-        ObserverMove = 0;
+        StartFen = fen;
     }
 
     public void LoadPgn(string pgn)
@@ -47,7 +47,6 @@ public class Game
         Infos = game.Infos;
         State = game.State;
         ObserverState = new(State);
-        ObserverMove = ObserverState.Moves.Count;
     }
 
     public void LoadPgn(string[] pgnLines)
@@ -62,7 +61,6 @@ public class Game
     {
         State = Fen.MapString();
         ObserverState = Fen.MapString();
-        ObserverMove = 0;
     }
 
     public MoveState Move(Piece piece, int x, int y, PieceType? transformation = null, bool dry = false)
@@ -171,123 +169,128 @@ public class Game
 
     public void ObserverMoveForward()
     {
-        if (State.Moves.Count >= ObserverMove + 1)
+        if (State.Moves.Any())
         {
-            ObserverState.ExecuteMove(State.Moves[ObserverMove].EngineMove);
-            ObserverMove++;
+            if (ObserverState.CurrentMove == null)
+            {
+                ObserverState.ExecuteMove(State.Moves[0].EngineMove);
+            }
+            else if (ObserverState.CurrentMove.Variation == null && State.Moves.Count > ObserverState.Moves.Count)
+            {
+                ObserverState.ExecuteMove(State.Moves[ObserverState.Moves.Count].EngineMove);
+            }
+            else if (ObserverState.CurrentMove.Variation != null && ObserverState.CurrentMove != ObserverState.CurrentMove.Variation.Moves.Last())
+            {
+                int pos = ObserverState.CurrentMove.Variation.Moves.IndexOf(ObserverState.CurrentMove);
+                var move = ObserverState.CurrentMove.Variation.Moves[pos + 1];
+                ObserverState.ExecuteMove(move.EngineMove, move.Variation);
+            }
         }
     }
 
     public void ObserverMoveBackward()
     {
-        if (ObserverMove > 0)
+        if (ObserverState.Moves.Any())
         {
-            ObserverMove--;
             ObserverState.RevertMove();
         }
     }
 
-    public void ObserverMoveTo(int move)
+    public void ObserverMoveTo(int i)
     {
-        if (ObserverMove > move)
-        {
-            while (ObserverMove > move)
-            {
-                ObserverMoveBackward();
-            }
-        }
-        else if (ObserverMove < move)
-        {
-            while (ObserverMove < move)
-            {
-                ObserverMoveForward();
-            }
-        }
+        Move move = State.Moves[i];
+        ObserverMoveTo(move);
     }
 
     public void ObserverMoveTo(Move move)
     {
-        ObserverState.Moves.ForEach(f => f.Variation = null);
-
+        List<Move> moves;
         if (move.Variation == null)
         {
-            ObserverMoveTo(move.HalfMoveNumber);
+            moves = State.Moves.Take(move.HalfMoveNumber + 1).ToList();
         }
         else
         {
-            ObserverMoveTo(0);
+            moves = move.Variation.StartMove > 1 ? State.Moves.GetRange(0, move.Variation.StartMove) : new List<Move>();
 
-            List<Variation> variations = new List<Variation>() { move.Variation };
-            Move startMove = move.Variation.StartMove;
-            
-            while (startMove.Variation != null)
+            List<Move> reverseMoves = new List<Move>();
+            int pos = move.Variation.Moves.IndexOf(move);
+            for (int i = pos; i >= 0; i--)
             {
-                variations.Add(startMove.Variation);
-                startMove = startMove.Variation.StartMove;
+                reverseMoves.Add(move.Variation.Moves[i]);
             }
 
-            for (int i = 0; i < startMove.HalfMoveNumber; i++)
+            var variation = move.Variation;
+            int rootStartMove = variation.RootStartMove;
+
+            List<Variation> variations = new List<Variation>();
+            while (variation.RootVariation != null)
             {
-                ObserverState.ExecuteMove(State.Moves[i].EngineMove);
+                variations.Add(variation.RootVariation);
+                variation = variation.RootVariation;
             }
 
-            for (int i = variations.Count - 1; i >= 0; i--)
+            for (int i = 0; i < variations.Count; i++)
             {
-                for (int j = 0; i < variations[i].Moves.Count; j++)
+                variation = variations[i];
+                for (int j = rootStartMove; j >= 0; j--)
                 {
-                    var obsMove = ObserverState.ExecuteMove(variations[i].Moves[j].EngineMove);
-                    obsMove.Variation = variations[i];
+                    reverseMoves.Add(variation.Moves[j]);
                 }
+                rootStartMove = variation.RootStartMove;
             }
+            moves.AddRange(Enumerable.Reverse(reverseMoves));
         }
+        ObserverState.SetObsState(moves, StartFen);
     }
 
     public MoveState VariationMove(Piece piece, int x, int y, PieceType? transformation)
     {
-        if (!State.Moves.Any())
+        EngineMove move = new EngineMove(piece.Position, new Position(x, y), transformation);
+        return VariationMove(move);
+    }
+
+    public MoveState VariationMove(EngineMove engineMove)
+    {
+        int startMoveId = ObserverState.CurrentMove == null ? 0 : ObserverState.CurrentMove.Variation == null ? ObserverState.CurrentMove.HalfMoveNumber + 1 : ObserverState.CurrentMove.Variation.StartMove;
+        Move? startMove = State.Moves.FirstOrDefault(f => f.HalfMoveNumber == startMoveId);
+
+        if (startMove == null)
         {
-            return Move(piece, x, y, transformation);
+            return Move(engineMove);
         }
 
-        Move startMove;
-        if (ObserverState.CurrentMove == null)
+        if (!Variations.ContainsKey(startMove))
         {
-            startMove = State.Moves[0];
+            Variations[startMove] = new List<Variation>();
         }
-        else if (ObserverState.CurrentMove.Variation == null)
+
+        Variation moveVariation;
+        if (ObserverState.CurrentMove == null || ObserverState.CurrentMove.Variation == null)
         {
-            startMove = State.Moves.First(f => f.HalfMoveNumber == ObserverState.CurrentMove.HalfMoveNumber);
+            moveVariation = new Variation(startMoveId);
+            Variations[startMove].Add(moveVariation);
         }
-        else if (ObserverState.CurrentMove.Variation.Moves.Last() != ObserverState.CurrentMove)
+        else if (ObserverState.CurrentMove == ObserverState.CurrentMove.Variation.Moves.Last())
         {
-            startMove = ObserverState.CurrentMove.Variation.Moves.First(f => f.HalfMoveNumber == ObserverState.CurrentMove.HalfMoveNumber);
+            moveVariation = ObserverState.CurrentMove.Variation;
         }
         else
         {
-            startMove = ObserverState.CurrentMove.Variation.StartMove;
+            moveVariation = new Variation(startMoveId, ObserverState.CurrentMove.Variation, ObserverState.CurrentMove.Variation.Moves.IndexOf(ObserverState.CurrentMove));
+            ObserverState.CurrentMove.Variation.ChildVariations.Add(moveVariation);
+            Variations[startMove].Add(moveVariation);
         }
 
-        EngineMove move = new EngineMove(piece.Position, new Position(x, y), transformation);
-        var moveState = Validate.TryExecuteMove(move, ObserverState, move.Transformation);
+        var moveState = Validate.TryExecuteMove(engineMove, ObserverState, engineMove.Transformation);
         if (moveState == MoveState.Ok && ObserverState.CurrentMove != null)
         {
-            if (ObserverState.Info.IsCheckMate)
-            {
-                Termination = Termination.Mate;
-                Result = ObserverState.Info.BlackToMove ? Result.WhiteWin : Result.BlackWin;
-            }
-
-            if (startMove.Variation == null)
-            {
-                startMove.Variation = new Variation(startMove, ObserverState.CurrentMove);
-                startMove.Variations.Add(startMove.Variation);
-                ObserverState.CurrentMove.Variation = startMove.Variation;
-            }
-            else
-            {
-                startMove.Variation.Moves.Add(ObserverState.CurrentMove);
-                ObserverState.CurrentMove.Variation = startMove.Variation;
-            }
+            ObserverState.CurrentMove.Variation = moveVariation;
+            moveVariation.Moves.Add(new(ObserverState.CurrentMove));
+        }
+        else
+        {
+             //todo cleanup
         }
         return moveState;
     }

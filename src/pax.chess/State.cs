@@ -16,7 +16,20 @@ public record State
         Moves = new List<Move>(state.Moves.Select(s => new Move(s)));
     }
 
-    internal Move ExecuteMove(EngineMove engineMove)
+    internal void SetObsState(List<Move> moves, string? fen)
+    {
+        var state = Fen.MapString(fen);
+        Info.Set(state.Info);
+        Moves.Clear();
+        Pieces = new List<Piece>(state.Pieces);
+        for (int i = 0; i < moves.Count; i++)
+        {
+            ExecuteMove(moves[i].EngineMove, moves[i].Variation);
+        }
+        CurrentMove = Moves.LastOrDefault();
+    }
+
+    internal Move ExecuteMove(EngineMove engineMove, Variation? variation = null)
     {
         Piece? pieceToMove = Pieces.SingleOrDefault(f => f.Position == engineMove.OldPosition);
         if (pieceToMove == null)
@@ -134,7 +147,7 @@ public record State
                 }
             }
         }
-
+        move.Variation = variation;
         CurrentMove = move;
         Moves.Add(move);
         return move;
@@ -209,6 +222,19 @@ public record State
             }
         }
         return false;
+    }
+
+    public bool IsCurrentMove(Move? move)
+    {
+        if (CurrentMove == null || move == null)
+        {
+            return false;
+        }
+        if (CurrentMove.Variation == null && move.Variation == null)
+        {
+            return CurrentMove.HalfMoveNumber == move.HalfMoveNumber;
+        }
+        return CurrentMove.Variation == move.Variation && CurrentMove.HalfMoveNumber == move.HalfMoveNumber;
     }
 
     public List<Position> ValidPositions(Piece piece)

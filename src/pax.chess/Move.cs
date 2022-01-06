@@ -11,8 +11,7 @@ public record Move
     public StateInfo StateInfo { get; internal set; } = new StateInfo();
     public Evaluation? Evaluation { get; set; }
     public string PgnMove { get; set; } = String.Empty;
-    public List<Variation> Variations { get; init; } = new List<Variation>();
-    public Variation? Variation { get; internal set; } = null;
+    public Variation? Variation { get; set; } = null;
 
 
     public Move(Piece piece, Position newPosition, int number, PieceType? transformation = null)
@@ -45,5 +44,6 @@ public record Move
         StateInfo = new(move.StateInfo);
         PgnMove = move.PgnMove;
         Evaluation = move.Evaluation == null ? null : new(move.Evaluation);
+        Variation = move.Variation;
     }
 }
