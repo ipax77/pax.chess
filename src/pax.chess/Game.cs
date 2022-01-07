@@ -182,8 +182,18 @@ public class Game
             else if (ObserverState.CurrentMove.Variation != null && ObserverState.CurrentMove != ObserverState.CurrentMove.Variation.Moves.Last())
             {
                 int pos = ObserverState.CurrentMove.Variation.Moves.IndexOf(ObserverState.CurrentMove);
+                if (pos == -1)
+                {
+                    return;
+                }
                 var move = ObserverState.CurrentMove.Variation.Moves[pos + 1];
-                ObserverState.ExecuteMove(move.EngineMove, move.Variation);
+
+                var moveVariation = ObserverState.CurrentMove.Variation;
+                var moveState = Validate.TryExecuteMove(move.EngineMove, ObserverState, move.Transformation);
+                if (moveState == MoveState.Ok && ObserverState.CurrentMove != null)
+                {
+                    ObserverState.CurrentMove.Variation = moveVariation;
+                }
             }
         }
     }
@@ -295,5 +305,16 @@ public class Game
         return moveState;
     }
 
+    public void CreateVariation(int startMoveId, List<EngineMove> engineMoves, Evaluation? eval)
+    {
+        var startMove = State.Moves[startMoveId];
+        ObserverMoveTo(startMove);
+        ObserverMoveBackward();
+        for (int i = 0; i < engineMoves.Count; i++)
+        {
+            VariationMove(engineMoves[i]);
+        }
+        Variations[startMove].Last().Evaluation = eval;
+    }
 
 }

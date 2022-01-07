@@ -24,12 +24,16 @@ public record State
         Pieces = new List<Piece>(state.Pieces);
         for (int i = 0; i < moves.Count; i++)
         {
-            ExecuteMove(moves[i].EngineMove, moves[i].Variation);
+            var moveState = Validate.TryExecuteMove(moves[i].EngineMove, this, moves[i].Transformation);
+            if (moveState == MoveState.Ok && CurrentMove != null)
+            {
+                CurrentMove.Variation = moves[i].Variation;
+            }
         }
         CurrentMove = Moves.LastOrDefault();
     }
 
-    internal Move ExecuteMove(EngineMove engineMove, Variation? variation = null)
+    internal Move ExecuteMove(EngineMove engineMove)
     {
         Piece? pieceToMove = Pieces.SingleOrDefault(f => f.Position == engineMove.OldPosition);
         if (pieceToMove == null)
@@ -147,7 +151,6 @@ public record State
                 }
             }
         }
-        move.Variation = variation;
         CurrentMove = move;
         Moves.Add(move);
         return move;

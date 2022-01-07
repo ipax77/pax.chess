@@ -14,37 +14,79 @@ public static class DbMap
         {
             game.Name = name;
         }
-        Match m = moveRx.Match(dbGame.EngineMoves);
-        while (m.Success)
+        var moves = GetEngineMoves(dbGame.EngineMoves);
+        foreach (var move in moves)
         {
-            EngineMove? move = Map.GetEngineMove(m.Groups[1].Value);
-            if (move != null)
+            var state = game.Move(move);
+            if (state != MoveState.Ok)
             {
-                game.Move(move);
+                throw new Exception($"failed executing db enginemove: {move}");
             }
-            else
-            {
-                throw new Exception($"failed mapping db enginemove: {m.Groups[1].Value}");
-            }
-            m = m.NextMatch();
         }
 
         game.Result = dbGame.Result;
         game.Termination = dbGame.Termination;
+
+        if (dbGame.Variations != null)
+        {
+            foreach (var dbVariation in dbGame.Variations)
+            {
+                var variation = GetVariation(game, dbVariation.StartMove, dbVariation.EngineMoves);
+                if (dbVariation.Evaluation != null)
+                {
+                    variation.Evaluation = new Evaluation(dbVariation.Evaluation.Score, dbVariation.Evaluation.Mate, dbVariation.Evaluation.IsBlack);
+                }
+                // todo subvariations
+            }
+        }
+        if (game.State.Moves.Any())
+        {
+            game.ObserverMoveTo(game.State.Moves.First());
+            game.ObserverMoveBackward();
+        }
         return game;
+    }
+
+    public static Variation GetVariation(Game game, int startMoveId, string engineMoves)
+    {
+        var moves = GetEngineMoves(engineMoves);
+        
+        var startMove = game.State.Moves[startMoveId];
+        game.ObserverMoveTo(startMove);
+        game.ObserverMoveBackward();
+        for (int i = 0; i < moves.Count; i++)
+        {
+            game.VariationMove(moves[i]);
+        }
+        return game.Variations[startMove].Last();
     }
 
     public static Game GetGame(string engineMoves)
     {
         Game game = new Game();
 
+        var moves = GetEngineMoves(engineMoves);
+        foreach (var move in moves)
+        {
+            var state = game.Move(move);
+            if (state != MoveState.Ok)
+            {
+                throw new Exception($"failed executing db enginemove: {move}");
+            }
+        }
+        return game;
+    }
+
+    public static List<EngineMove> GetEngineMoves(string engineMoves)
+    {
+        List<EngineMove> moves = new List<EngineMove>();
         Match m = moveRx.Match(engineMoves);
         while (m.Success)
         {
             EngineMove? move = Map.GetEngineMove(m.Groups[1].Value);
             if (move != null)
             {
-                game.Move(move);
+                moves.Add(move);
             }
             else
             {
@@ -52,13 +94,20 @@ public static class DbMap
             }
             m = m.NextMatch();
         }
-        return game;
+        return moves;
     }
 
     public static DbGame GetGame(Game game)
     {
         DbGame dbGame = new DbGame();
+        SetGameInfo(dbGame, game);
+        dbGame.HalfMoves = game.State.Moves.Count;
+        dbGame.EngineMoves = String.Concat(game.State.Moves.Select(s => Map.GetEngineMoveString(s)));
+        return dbGame;
+    }
 
+    public static void SetGameInfo(DbGame dbGame, Game game)
+    {
         if (game.Infos.Any())
         {
             if (game.Infos.ContainsKey("Event"))
@@ -149,10 +198,46 @@ public static class DbMap
                     _ => Termination.None
                 };
             }
-            dbGame.HalfMoves = game.State.Moves.Count;
-            dbGame.EngineMoves = String.Concat(game.State.Moves.Select(s => Map.GetEngineMoveString(s)));
         }
+    }
 
-        return dbGame;
+    public static List<DbVariation> GetVariations(Game game)
+    {
+        List<DbVariation> variations = new List<DbVariation>();
+        foreach (var ent in game.Variations)
+        {
+            foreach (var variation in ent.Value.Where(x => x.RootVariation == null))
+            {
+                DbEvaluation? dbEvaluation = null;
+                if (variation.Evaluation != null)
+                {
+                    dbEvaluation = new DbEvaluation()
+                    {
+                        Score = (short)variation.Evaluation.Score,
+                        Mate = (sbyte)variation.Evaluation.Mate,
+                        IsBlack = variation.Evaluation.IsBlack,
+                    };
+                }
+                DbVariation dbVariation = new DbVariation()
+                {
+                    StartMove = variation.StartMove,
+                    EngineMoves = String.Concat(variation.Moves.Select(s => s.ToString())),
+                    Evaluation = dbEvaluation
+                };
+
+                foreach (var subvariation in ent.Value.Where(x => x.RootVariation == variation))
+                {
+                    // todo recursive subsub search
+                    dbVariation.SubVariations.Add(new DbSubVariation()
+                    {
+                        RootStartMove = subvariation.RootStartMove,
+                        EngineMovesWithSubs = String.Concat(subvariation.Moves.Select(s => s.ToString())),
+                        RootVariation = dbVariation
+                    });
+                }
+                variations.Add(dbVariation);
+            }
+        }
+        return variations;
     }
 }
