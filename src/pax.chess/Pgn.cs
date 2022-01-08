@@ -38,7 +38,6 @@ public class Pgn
     public static Game MapStrings(string[] pgnLines)
     {
         Game game = new Game();
-        Dictionary<string, string> Infos = new Dictionary<string, string>();
         bool moveSection = false;
 
         List<MoveHelper> moveHelpers = new List<MoveHelper>();
@@ -50,7 +49,7 @@ public class Pgn
                 var match = infoRx.Match(pgnLines[i]);
                 if (match.Success)
                 {
-                    Infos[match.Groups[1].ToString().Trim()] = match.Groups[2].ToString();
+                    game.Infos[match.Groups[1].ToString().Trim()] = match.Groups[2].ToString();
                 }
             }
             else
@@ -58,9 +57,8 @@ public class Pgn
                 if (pgnLines[i].StartsWith("1."))
                 {
                     moveSection = true;
-                    if (Infos.ContainsKey("Variant") && Infos["Variant"] != "Standard")
+                    if (game.Infos.ContainsKey("Variant") && game.Infos["Variant"] != "Standard")
                     {
-                        game.Infos = Infos;
                         return game;
                     }
                 }
@@ -123,7 +121,6 @@ public class Pgn
                 game.Move(blackMove);
             }
         }
-
         return game;
     }
 

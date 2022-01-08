@@ -47,6 +47,7 @@ public class Game
         Infos = game.Infos;
         State = game.State;
         ObserverState = new(State);
+        ObserverMoveTo(0);
     }
 
     public void LoadPgn(string[] pgnLines)
@@ -55,6 +56,7 @@ public class Game
         Infos = game.Infos;
         State = game.State;
         ObserverState = new(State);
+        ObserverMoveTo(0);
     }
 
     public void Reset()

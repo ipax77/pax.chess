@@ -231,7 +231,7 @@ public static class DbMap
                     dbVariation.SubVariations.Add(new DbSubVariation()
                     {
                         RootStartMove = subvariation.RootStartMove,
-                        EngineMovesWithSubs = String.Concat(subvariation.Moves.Select(s => s.ToString())),
+                        EngineMovesWithSubs = String.Concat(subvariation.Moves.Select(s => s.EngineMove.ToString())),
                         RootVariation = dbVariation
                     });
                 }
