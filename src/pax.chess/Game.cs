@@ -16,6 +16,7 @@ public class Game
     public State ObserverState { get; internal set; } = new State();
     public Dictionary<Move, List<Variation>> Variations { get; init; } = new Dictionary<Move, List<Variation>>();
     public string? StartFen { get; private set; }
+    public event EventHandler<EventArgs>? ObserverMoved;
 
     public Game(string? fen = null)
     {
@@ -169,6 +170,11 @@ public class Game
         }
     }
 
+    protected virtual void OnObserverMoved(EventArgs e)
+    {
+        ObserverMoved?.Invoke(this, e);
+    }
+
     public void ObserverMoveForward()
     {
         if (State.Moves.Any())
@@ -197,14 +203,18 @@ public class Game
                     ObserverState.CurrentMove.Variation = moveVariation;
                 }
             }
+            OnObserverMoved(EventArgs.Empty);
         }
     }
+
+
 
     public void ObserverMoveBackward()
     {
         if (ObserverState.Moves.Any())
         {
             ObserverState.RevertMove();
+            OnObserverMoved(EventArgs.Empty);
         }
     }
 
@@ -254,6 +264,7 @@ public class Game
             moves.AddRange(Enumerable.Reverse(reverseMoves));
         }
         ObserverState.SetObsState(moves, StartFen);
+        OnObserverMoved(EventArgs.Empty);
     }
 
     public MoveState VariationMove(Piece piece, int x, int y, PieceType? transformation)
@@ -314,9 +325,14 @@ public class Game
         ObserverMoveBackward();
         for (int i = 0; i < engineMoves.Count; i++)
         {
-            VariationMove(engineMoves[i]);
+            var result = VariationMove(engineMoves[i]);
+            if (result != MoveState.Ok)
+            {
+                return;
+            }
         }
         Variations[startMove].Last().Evaluation = eval;
+        OnObserverMoved(EventArgs.Empty);
     }
 
 }
