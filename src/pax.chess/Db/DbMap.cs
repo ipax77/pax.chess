@@ -63,7 +63,7 @@ public static class DbMap
                 var variation = GetVariation(game, dbVariation.StartMove, dbVariation.EngineMoves);
                 if (dbVariation.Evaluation != null)
                 {
-                    variation.Evaluation = new Evaluation(dbVariation.Evaluation.Score, dbVariation.Evaluation.Mate, variation.StartMove % 2 != 0);
+                    variation.Evaluation = new Evaluation(dbVariation.Evaluation.Score, dbVariation.Evaluation.Mate, false);
                 }
                 // todo subvariations
             }
