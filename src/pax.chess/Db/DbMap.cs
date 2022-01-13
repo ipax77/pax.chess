@@ -27,18 +27,48 @@ public static class DbMap
         game.Result = dbGame.Result;
         game.Termination = dbGame.Termination;
 
-        if (dbGame.Variations != null)
+
+        if (dbGame.MoveEvaluations.Any())
+        {
+            foreach (var eval in dbGame.MoveEvaluations)
+            {
+                var variation = GetVariation(game, eval.StartMove, eval.EngineMoves);
+                variation.Pv = eval.Pv;
+                variation.Evaluation = new Evaluation((int)(eval.Score * 100.0m), 0, false);
+                variation.Evaluation.MoveQuality = eval.MoveQuality;
+                if (variation.Pv == 1)
+                {
+                    game.State.Moves[variation.StartMove].Evaluation = variation.Evaluation;
+                }
+
+                if (!game.ReviewVariations.ContainsKey(variation.StartMove))
+                {
+                    game.ReviewVariations[variation.StartMove] = new List<Variation>();
+                }
+                game.ReviewVariations[variation.StartMove].Add(variation);
+            }
+
+            foreach (var ent in game.ReviewVariations)
+            {
+                game.ReviewVariations[ent.Key] = ent.Value.OrderBy(o => o.Pv).ToList();
+            }
+        }
+        game.Variations.Clear();
+        game.State.Moves.ForEach(f => f.Variation = null);
+
+        if (dbGame.Variations.Any())
         {
             foreach (var dbVariation in dbGame.Variations)
             {
                 var variation = GetVariation(game, dbVariation.StartMove, dbVariation.EngineMoves);
                 if (dbVariation.Evaluation != null)
                 {
-                    variation.Evaluation = new Evaluation(dbVariation.Evaluation.Score, dbVariation.Evaluation.Mate, dbVariation.Evaluation.IsBlack);
+                    variation.Evaluation = new Evaluation(dbVariation.Evaluation.Score, dbVariation.Evaluation.Mate, variation.StartMove % 2 != 0);
                 }
                 // todo subvariations
             }
         }
+
         if (game.State.Moves.Any())
         {
             game.ObserverMoveTo(game.State.Moves.First());
@@ -50,7 +80,7 @@ public static class DbMap
     public static Variation GetVariation(Game game, int startMoveId, string engineMoves)
     {
         var moves = GetEngineMoves(engineMoves);
-        
+
         var startMove = game.State.Moves[startMoveId];
         game.ObserverMoveTo(startMove);
         game.ObserverMoveBackward();
@@ -214,8 +244,7 @@ public static class DbMap
                     dbEvaluation = new DbEvaluation()
                     {
                         Score = (short)variation.Evaluation.Score,
-                        Mate = (sbyte)variation.Evaluation.Mate,
-                        IsBlack = variation.Evaluation.IsBlack,
+                        Mate = (sbyte)variation.Evaluation.Mate
                     };
                 }
                 DbVariation dbVariation = new DbVariation()
@@ -239,5 +268,36 @@ public static class DbMap
             }
         }
         return variations;
+    }
+
+    public static List<DbMoveEvaluation> GetMoveEvaluations(Game game)
+    {
+        if (!game.ReviewVariations.Any())
+        {
+            return new List<DbMoveEvaluation>();
+        }
+
+        List<DbMoveEvaluation> evals = new List<DbMoveEvaluation>();
+        foreach (var ent in game.ReviewVariations)
+        {
+            foreach (var variation in ent.Value)
+            {
+
+                var eval = new DbMoveEvaluation()
+                {
+                    StartMove = variation.StartMove,
+                    Pv = variation.Pv,
+                    EngineMoves = String.Concat(variation.Moves.Select(s => s.EngineMove.ToString())),
+                    Score = variation.Evaluation == null ? 0 : (decimal)variation.Evaluation.ChartScore(),
+                };
+                if (eval.Pv == 1)
+                {
+                    var move = game.State.Moves[variation.StartMove];
+                    eval.MoveQuality = move.Evaluation == null ? MoveQuality.Unknown : move.Evaluation.MoveQuality;
+                }
+                evals.Add(eval);
+            }
+        }
+        return evals;
     }
 }

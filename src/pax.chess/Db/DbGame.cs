@@ -33,10 +33,12 @@ public class DbGame
     public int HalfMoves { get; set; }
     public virtual ICollection<DbPosition> Positions { get; set; }
     public virtual ICollection<DbVariation> Variations { get; set; }
+    public virtual ICollection<DbMoveEvaluation> MoveEvaluations { get; set; }
     public DbGame()
     {
         Positions = new HashSet<DbPosition>();
         Variations = new HashSet<DbVariation>();
+        MoveEvaluations = new HashSet<DbMoveEvaluation>();
     }
 }
 
@@ -50,6 +52,17 @@ public class DbPosition
     {
         Games = new HashSet<DbGame>();
     }
+}
+
+public class DbMoveEvaluation
+{
+    public int Id { get; set; }
+    public int StartMove { get; set; }
+    public int Pv { get; set; }
+    public string EngineMoves { get; set; } = String.Empty;
+    public decimal Score { get; set; }
+    public MoveQuality MoveQuality { get; set; }
+
 }
 
 public class DbVariation
@@ -79,6 +92,5 @@ public class DbEvaluation
     public int Id { get; set; }
     public short Score { get; set; }
     public sbyte Mate { get; set; }
-    public bool IsBlack { get; set; }
 }
 
