@@ -15,6 +15,7 @@ public class Game
     public State State { get; internal set; } = new State();
     public State ObserverState { get; internal set; } = new State();
     public Dictionary<Move, List<Variation>> Variations { get; init; } = new Dictionary<Move, List<Variation>>();
+    public Dictionary<int, List<Variation>> ReviewVariations { get; set; } = new Dictionary<int, List<Variation>>();
     public string? StartFen { get; private set; }
     public event EventHandler<EventArgs>? ObserverMoved;
 
@@ -333,6 +334,16 @@ public class Game
         }
         Variations[startMove].Last().Evaluation = eval;
         OnObserverMoved(EventArgs.Empty);
+    }
+
+    public List<Variation> GetReviewVariations()
+    {
+        int currentMove = ObserverState.CurrentMove == null ? 0 : ObserverState.CurrentMove.HalfMoveNumber;
+        if (!ReviewVariations.ContainsKey(currentMove))
+        {
+            return new List<Variation>();
+        }
+        return ReviewVariations[currentMove];
     }
 
 }

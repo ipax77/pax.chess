@@ -7,6 +7,8 @@ public record Evaluation
     public int Score { get; init; }
     public int Mate { get; init; }
     public bool IsBlack { get; init; }
+    public MoveQuality MoveQuality { get; set; }
+
     public double ChartScore() => (Score, Mate) switch
     {
         (_, > 0) => 20.0,

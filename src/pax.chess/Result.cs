@@ -34,3 +34,14 @@ public enum MoveState : byte
     CastleNotAllowed,
     WouldBeCheck
 }
+
+public enum MoveQuality : byte
+{
+    Unknown = 0,
+    Only = 1,
+    Best = 10,
+    Runner = 20,
+    Clubhouse = 30,
+    Questionmark = 40,
+    Blunder = 50
+}
