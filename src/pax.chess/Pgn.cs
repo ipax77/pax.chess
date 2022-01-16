@@ -26,7 +26,13 @@ public class Pgn
     private static Regex comment1Rx = new Regex(@"(.*);(.*)");
     private static Regex comment2Rx = new Regex(@"(.*)}(.*)");
     private static Regex commentRx = new Regex(@"(\{[^\}]+\})");
-    private static Regex moveRx = new Regex(@"(\d+)\.+\s([\w\d\+\-!\?]+)\s?([\w\d\+\-!\?]+)?\s?(\{[^\}]+\})?");
+    private static Regex moveRx = new Regex(@"(\d+)\.+\s+([\w\d\+\-!\?]+)\s?([\w\d\+\-!\?]+)?\s+?(\{[^\}]+\})?");
+
+    private static Regex openCurleyRx = new Regex(@"(\{[^}]*$)");
+    private static Regex openBracketRx = new Regex(@"(\([^)]*$)");
+
+    private static Regex closeCurleyRx = new Regex(@"^([^{]+\})");
+    private static Regex closeBracketRx = new Regex(@"^([^(]+\))");
 
     public static Game MapString(string pgn)
     {
@@ -39,9 +45,142 @@ public class Pgn
     {
         Game game = new Game();
         bool moveSection = false;
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < pgnLines.Length; i++)
+        {
+            if (!moveSection && pgnLines[i].StartsWith("["))
+            {
+                var info = infoRx.Match(pgnLines[i]);
+                if (info.Success)
+                {
+                    game.Infos[info.Groups[1].ToString().Trim()] = info.Groups[2].ToString();
+                }
+            }
+            else
+            {
+                if (pgnLines[i].StartsWith("1."))
+                {
+                    moveSection = true;
+                    if (game.Infos.ContainsKey("Variant") && game.Infos["Variant"] != "Standard")
+                    {
+                        return game;
+                    }
+                }
+                if (moveSection)
+                {
+                    string pgnline = pgnLines[i];
+                    // ; comments
+                    if (pgnline.Contains(";"))
+                    {
+                        pgnline = pgnline.Split(";")[0];
+                    }
+                    sb.Append(pgnline + " ");
+                }
+            }
+        }
+
+        string line = sb.ToString();
+
+        // () variations
+        Match annotation = Regex.Match(line, @"(\((?:\[??[^\(]*?\)))");
+        Dictionary<string, int> annotations = new Dictionary<string, int>();
+        do
+        {
+            while (annotation.Success)
+            {
+                int c = 0;
+                annotations[annotation.Groups[1].Value] = annotation.Groups[1].Value.Count(c => c == ')');
+                annotation = annotation.NextMatch();
+            }
+            foreach (var ent in annotations.OrderByDescending(o => o.Value))
+            {
+                line = line.Replace(ent.Key, "");
+            }
+            annotations.Clear();
+            annotation = Regex.Match(line, @"(\((?:\[??[^\(]*?\)))");
+        } while (annotation.Success);
+
+
+        // {} comments
+        Match comment = Regex.Match(line, @"(\{(?:\{??[^\{]*?\}))");
+        Dictionary<string, int> comments = new Dictionary<string, int>();
+        do {
+            while (comment.Success)
+            {
+                line = line.Replace(comment.Groups[1].Value, "");
+                comments[comment.Groups[1].Value] = comment.Groups[1].Value.Count(c => c == '}');
+                comment = comment.NextMatch();
+            }
+            foreach (var ent in comments.OrderByDescending(o => o.Value))
+            {
+                line = line.Replace(ent.Key, "");
+            }
+            comments.Clear();
+            comment = Regex.Match(line, @"(\{(?:\{??[^\{]*?\}))");
+        } while (comment.Success);
+
+        List < MoveHelper > moveHelpers = new List<MoveHelper>();
+        MoveHelper moveHelper = new MoveHelper();
+        var moves = Regex.Split(line, @"\d+\.\.\.|\d+\.");
+        for (int m = 0; m < moves.Length; m++)
+        {
+            var move = moves[m].Trim();
+            if (String.IsNullOrEmpty(move))
+            {
+                continue;
+            }
+            var halfmoves = Regex.Split(move, @"\s+");
+            for (int h = 0; h < halfmoves.Length; h++)
+            {
+                if (halfmoves[h] == "∓" || halfmoves[h] == "=" || halfmoves[h] == "±")
+                {
+                    continue;
+                }
+                moveHelper.AddMove(halfmoves[h]);
+                if (moveHelper.IsReady)
+                {
+                    moveHelpers.Add(new MoveHelper(moveHelper));
+                    moveHelper = new MoveHelper();
+                }
+            }
+        }
+        moveHelpers.Add(moveHelper);
+
+        for (int i = 0; i < moveHelpers.Count; i++)
+        {
+            try
+            {
+                var whiteMove = GetMove(moveHelpers[i].WhiteMove, false, game.State);
+                if (whiteMove != null)
+                {
+                    game.Move(whiteMove);
+                }
+
+                var blackMove = GetMove(moveHelpers[i].BlackMove, true, game.State);
+                if (blackMove != null)
+                {
+                    game.Move(blackMove);
+                }
+            } catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+        }
+
+        return game;
+    }
+
+    public static Game MapStrings_deprecated(string[] pgnLines)
+    {
+        Game game = new Game();
+        bool moveSection = false;
 
         List<MoveHelper> moveHelpers = new List<MoveHelper>();
         MoveHelper moveHelper = new MoveHelper();
+        int commentsOpen = 0;
+        int annotationsOpen = 0;
+
         for (int i = 0; i < pgnLines.Length; i++)
         {
             if (!moveSection && pgnLines[i].StartsWith("["))
@@ -64,41 +203,85 @@ public class Pgn
                 }
                 if (moveSection)
                 {
+                    string line = pgnLines[i];
                     // ; comments
-                    if (pgnLines[i].Contains(";"))
+                    if (line.Contains(";"))
                     {
-                        pgnLines[i] = pgnLines[i].Split(";")[0];
+                        line = line.Split(";")[0];
                     }
 
                     // {} comments
-                    var lines = Regex.Split(pgnLines[i], @"\{[^\{]+\}");
-
-                    for (int l = 0; l < lines.Length; l++)
+                    Match closeCurley = closeCurleyRx.Match(line);
+                    if (closeCurley.Success)
                     {
-                        if (String.IsNullOrEmpty(lines[l]))
+                        line = line.Replace(closeCurley.Groups[1].Value, "");
+                        commentsOpen--;
+                    }
+
+                    Match openCurley = openCurleyRx.Match(line);
+                    if (openCurley.Success)
+                    {
+                        line = line.Replace(openCurley.Groups[1].Value, "");
+                        commentsOpen++;
+                    }
+
+                    Match comment = Regex.Match(line, @"(\{[^\{]+\})");
+                    while (comment.Success)
+                    {
+                        line = line.Replace(comment.Groups[1].Value, "");
+                        comment = comment.NextMatch();
+                    }
+
+                    // () annotations
+                    Match closeBracket = closeBracketRx.Match(line);
+                    if (closeBracket.Success)
+                    {
+                        line = line.Replace(closeBracket.Groups[1].Value, "");
+                        annotationsOpen--;
+                    }
+
+                    Match openBracket = openBracketRx.Match(line);
+                    if (openBracket.Success)
+                    {
+                        line = line.Replace(openBracket.Groups[1].Value, "");
+                        annotationsOpen++;
+                    }
+
+                    Match annotation = Regex.Match(line, @"\([^\[]+\)");
+                    while (annotation.Success)
+                    {
+                        line = line.Replace(annotation.Groups[1].Value, "");
+                        annotation = annotation.NextMatch();
+                    }
+
+                    if (annotationsOpen > 0 || commentsOpen > 0)
+                    {
+                        if (line == pgnLines[i])
                         {
                             continue;
                         }
-                        // () annotations
-                        var line = Regex.Replace(lines[l], @"\([^\[]+\)", "");
+                    }
 
-                        var moves = Regex.Split(line, @"\d+\.\.\.|\d+\.");
-                        for (int m = 0; m < moves.Length; m++)
+                    var moves = Regex.Split(line, @"\d+\.\.\.|\d+\.");
+                    for (int m = 0; m < moves.Length; m++)
+                    {
+                        var move = moves[m].Trim();
+                        if (String.IsNullOrEmpty(move))
                         {
-                            var move = moves[m].Trim();
-                            if (String.IsNullOrEmpty(move))
+                            continue;
+                        }
+                        var halfmoves = Regex.Split(move, @"\s+");
+                        for (int h = 0; h < halfmoves.Length; h++)
+                        {
+                            if (halfmoves[h] == "∓" || halfmoves[h] == "=" || halfmoves[h] == "(")
                             {
                                 continue;
                             }
-                            var halfmoves = Regex.Split(move, @"\s+");
-                            for (int h = 0; h < halfmoves.Length; h++)
+                            moveHelper.AddMove(halfmoves[h]);
+                            if (moveHelper.IsReady)
                             {
-                                moveHelper.AddMove(halfmoves[h]);
-                                if (moveHelper.IsReady)
-                                {
-                                    moveHelpers.Add(new MoveHelper(moveHelper));
-                                    moveHelper = new MoveHelper();
-                                }
+                                moveHelpers.Add(new MoveHelper(moveHelper));
+                                moveHelper = new MoveHelper();
                             }
                         }
                     }
@@ -121,6 +304,7 @@ public class Pgn
                 game.Move(blackMove);
             }
         }
+
         return game;
     }
 
@@ -133,10 +317,7 @@ public class Pgn
             return null;
         }
 
-        if (move.EndsWith("+"))
-        {
-            move = move.Remove(move.Length - 1, 1);
-        }
+
 
         if (move.Contains("x"))
         {
@@ -156,11 +337,20 @@ public class Pgn
         {
             move = move.Remove(move.Length - 2, 2);
         }
+        else if (move.EndsWith("??"))
+        {
+            move = move.Remove(move.Length - 2, 2);
+        }
         else if (move.EndsWith("!"))
         {
             move = move.Remove(move.Length - 1, 1);
         }
         else if (move.EndsWith("?"))
+        {
+            move = move.Remove(move.Length - 1, 1);
+        }
+
+        if (move.EndsWith("+"))
         {
             move = move.Remove(move.Length - 1, 1);
         }

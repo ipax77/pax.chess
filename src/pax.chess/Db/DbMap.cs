@@ -144,7 +144,11 @@ public static class DbMap
             {
                 dbGame.Event = game.Infos["Event"];
             }
-            if (game.Infos.ContainsKey("Site"))
+            if (game.Infos.ContainsKey("Link"))
+            {
+                dbGame.Site = game.Infos["Link"];
+            }
+            else if (game.Infos.ContainsKey("Site"))
             {
                 dbGame.Site = game.Infos["Site"];
             }
