@@ -338,7 +338,13 @@ public class Game
 
     public List<Variation> GetReviewVariations()
     {
+        if (ObserverState.CurrentMove != null && ObserverState.CurrentMove.Variation != null)
+        {
+            return new List<Variation>();
+        }
+
         int currentMove = ObserverState.CurrentMove == null ? 0 : ObserverState.CurrentMove.HalfMoveNumber;
+        
         if (!ReviewVariations.ContainsKey(currentMove))
         {
             return new List<Variation>();

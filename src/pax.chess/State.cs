@@ -43,7 +43,6 @@ public record State
 
         Move move = new Move(pieceToMove, engineMove.NewPosition, Moves.Count, engineMove.Transformation);
         move.StateInfo = new(Info);
-        move.PgnMove = Pgn.MapPiece(move, this);
 
         Info.BlackToMove = !Info.BlackToMove;
 
@@ -87,6 +86,8 @@ public record State
                 move.Piece.Type = (PieceType)move.Transformation;
             }
         }
+        move.PgnMove = Pgn.MapPiece(move, this);
+
         move.Piece.Position = move.NewPosition;
 
         if (move.Piece.Type == PieceType.Pawn || (move.Capture != null && move.Capture.Type == PieceType.Pawn))
