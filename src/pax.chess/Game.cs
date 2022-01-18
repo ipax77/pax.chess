@@ -1,5 +1,4 @@
 ﻿using pax.chess.Validation;
-using System.Collections.Generic;
 
 namespace pax.chess;
 
@@ -277,7 +276,7 @@ public class Game
         }
         else
         {
-             //todo cleanup
+            //todo cleanup
         }
         return moveState;
     }
@@ -311,7 +310,7 @@ public class Game
         }
 
         int currentMove = ObserverState.CurrentMove == null ? 0 : ObserverState.CurrentMove.HalfMoveNumber;
-        
+
         if (!ReviewVariations.ContainsKey(currentMove))
         {
             return new List<Variation>();

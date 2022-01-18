@@ -1,5 +1,4 @@
 ﻿using pax.chess.Validation;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 namespace pax.chess;
 [SuppressMessage(
@@ -203,16 +202,17 @@ public record State
                 move.Piece.Type = PieceType.Pawn;
             }
         }
-        
+
         piece.Position = move.OldPosition;
         // move.Piece.Position = move.OldPosition;
-        
+
         Info.Set(move.StateInfo);
         Moves.RemoveAt(Moves.Count - 1);
         if (Moves.Any())
         {
             CurrentMove = Moves.Last();
-        } else
+        }
+        else
         {
             CurrentMove = null;
         }

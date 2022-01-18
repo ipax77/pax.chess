@@ -1,5 +1,5 @@
-﻿using System.Text;
-using System.Globalization;
+﻿using System.Globalization;
+using System.Text;
 
 namespace pax.chess;
 public static class Fen
