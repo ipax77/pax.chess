@@ -2,7 +2,7 @@
 using System.Text.Json.Serialization;
 
 namespace pax.chess;
-public record Evaluation
+public sealed record Evaluation
 {
     public int Score { get; init; }
     public int Mate { get; init; }
@@ -34,7 +34,7 @@ public record Evaluation
         Mate = isBlack ? mate * -1 : mate;
     }
 
-    public Evaluation(Evaluation evaluation)
+    internal Evaluation(Evaluation evaluation)
     {
         Score = evaluation.Score;
         Mate = evaluation.Mate;

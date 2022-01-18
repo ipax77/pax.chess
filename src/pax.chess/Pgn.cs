@@ -1,55 +1,31 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace pax.chess;
-public class Pgn
+public static class Pgn
 {
-    //    [Event "F/S Return Match"]
-    //    [Site "Belgrade, Serbia JUG"]
-    //    [Date "1992.11.04"]
-    //    [Round "29"]
-    //    [White "Fischer, Robert J."]
-    //    [Black "Spassky, Boris V."]
-    //    [Result "1/2-1/2"]
-
-    //1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 { This opening is called the Ruy Lopez.}
-    //4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7
-    //11. c4 c6 12. cxb5 axb5 13. Nc3 Bb7 14. Bg5 b4 15. Nb1 h6 16. Bh4 c5 17. dxe5
-    //Nxe4 18. Bxe7 Qxe7 19. exd6 Qf6 20. Nbd2 Nxd6 21. Nc4 Nxc4 22. Bxc4 Nb6
-    //23. Ne5 Rae8 24. Bxf7+ Rxf7 25. Nxf7 Rxe1+ 26. Qxe1 Kxf7 27. Qe3 Qg5 28. Qxg5
-    //hxg5 29. b3 Ke6 30. a3 Kd6 31. axb4 cxb4 32. Ra5 Nd5 33. f3 Bc8 34. Kf2 Bf5
-    //35. Ra7 g6 36. Ra6+ Kc5 37. Ke1 Nf4 38. g3 Nxh3 39. Kd2 Kb5 40. Rd6 Kc5 41. Ra6
-    //Nf2 42. g4 Bd3 43. Re6 1/2-1/2
-
-    private static Regex infoRx = new Regex(@"\[(.*)""(.*)""\]");
-
-    private static Regex comment1Rx = new Regex(@"(.*);(.*)");
-    private static Regex comment2Rx = new Regex(@"(.*)}(.*)");
-    private static Regex commentRx = new Regex(@"(\{[^\}]+\})");
-    private static Regex moveRx = new Regex(@"(\d+)\.+\s+([\w\d\+\-!\?]+)\s?([\w\d\+\-!\?]+)?\s+?(\{[^\}]+\})?");
-
-    private static Regex openCurleyRx = new Regex(@"(\{[^}]*$)");
-    private static Regex openBracketRx = new Regex(@"(\([^)]*$)");
-
-    private static Regex closeCurleyRx = new Regex(@"^([^{]+\})");
-    private static Regex closeBracketRx = new Regex(@"^([^(]+\))");
+    private static readonly Regex infoRx = new(@"\[(.*)""(.*)""\]");
 
     public static Game MapString(string pgn)
     {
-        // var lines = pgn.Split(new String[] {"\\n"}, StringSplitOptions.None);
         var pgnLines = Regex.Split(pgn, @"((\r)+)?(\n)+((\r)+)?").Select(s => s.Trim()).Where(x => !String.IsNullOrEmpty(x)).ToArray();
         return MapStrings(pgnLines);
     }
 
     public static Game MapStrings(string[] pgnLines)
     {
-        Game game = new Game();
+        if (pgnLines == null)
+        {
+            throw new ArgumentNullException(nameof(pgnLines));
+        }
+        Game game = new();
         bool moveSection = false;
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new();
 
         for (int i = 0; i < pgnLines.Length; i++)
         {
-            if (!moveSection && pgnLines[i].StartsWith("["))
+            if (!moveSection && pgnLines[i].StartsWith("[", StringComparison.Ordinal))
             {
                 var info = infoRx.Match(pgnLines[i]);
                 if (info.Success)
@@ -59,7 +35,7 @@ public class Pgn
             }
             else
             {
-                if (pgnLines[i].StartsWith("1."))
+                if (pgnLines[i].StartsWith("1.", StringComparison.Ordinal))
                 {
                     moveSection = true;
                     if (game.Infos.ContainsKey("Variant") && game.Infos["Variant"] != "Standard")
@@ -71,7 +47,7 @@ public class Pgn
                 {
                     string pgnline = pgnLines[i];
                     // ; comments
-                    if (pgnline.Contains(";"))
+                    if (pgnline.Contains(';', StringComparison.Ordinal))
                     {
                         pgnline = pgnline.Split(";")[0];
                     }
@@ -84,18 +60,17 @@ public class Pgn
 
         // () variations
         Match annotation = Regex.Match(line, @"(\((?:\[??[^\(]*?\)))");
-        Dictionary<string, int> annotations = new Dictionary<string, int>();
+        Dictionary<string, int> annotations = new();
         do
         {
             while (annotation.Success)
             {
-                int c = 0;
                 annotations[annotation.Groups[1].Value] = annotation.Groups[1].Value.Count(c => c == ')');
                 annotation = annotation.NextMatch();
             }
             foreach (var ent in annotations.OrderByDescending(o => o.Value))
             {
-                line = line.Replace(ent.Key, "");
+                line = line.Replace(ent.Key, "", StringComparison.Ordinal);
             }
             annotations.Clear();
             annotation = Regex.Match(line, @"(\((?:\[??[^\(]*?\)))");
@@ -104,24 +79,25 @@ public class Pgn
 
         // {} comments
         Match comment = Regex.Match(line, @"(\{(?:\{??[^\{]*?\}))");
-        Dictionary<string, int> comments = new Dictionary<string, int>();
-        do {
+        Dictionary<string, int> comments = new();
+        do
+        {
             while (comment.Success)
             {
-                line = line.Replace(comment.Groups[1].Value, "");
+                line = line.Replace(comment.Groups[1].Value, "", StringComparison.Ordinal);
                 comments[comment.Groups[1].Value] = comment.Groups[1].Value.Count(c => c == '}');
                 comment = comment.NextMatch();
             }
             foreach (var ent in comments.OrderByDescending(o => o.Value))
             {
-                line = line.Replace(ent.Key, "");
+                line = line.Replace(ent.Key, "", StringComparison.Ordinal);
             }
             comments.Clear();
             comment = Regex.Match(line, @"(\{(?:\{??[^\{]*?\}))");
         } while (comment.Success);
 
-        List < MoveHelper > moveHelpers = new List<MoveHelper>();
-        MoveHelper moveHelper = new MoveHelper();
+        List<MoveHelper> moveHelpers = new();
+        MoveHelper moveHelper = new();
         var moves = Regex.Split(line, @"\d+\.\.\.|\d+\.");
         for (int m = 0; m < moves.Length; m++)
         {
@@ -142,149 +118,6 @@ public class Pgn
                 {
                     moveHelpers.Add(new MoveHelper(moveHelper));
                     moveHelper = new MoveHelper();
-                }
-            }
-        }
-        moveHelpers.Add(moveHelper);
-
-        for (int i = 0; i < moveHelpers.Count; i++)
-        {
-            try
-            {
-                var whiteMove = GetMove(moveHelpers[i].WhiteMove, false, game.State);
-                if (whiteMove != null)
-                {
-                    game.Move(whiteMove);
-                }
-
-                var blackMove = GetMove(moveHelpers[i].BlackMove, true, game.State);
-                if (blackMove != null)
-                {
-                    game.Move(blackMove);
-                }
-            } catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
-        }
-
-        return game;
-    }
-
-    public static Game MapStrings_deprecated(string[] pgnLines)
-    {
-        Game game = new Game();
-        bool moveSection = false;
-
-        List<MoveHelper> moveHelpers = new List<MoveHelper>();
-        MoveHelper moveHelper = new MoveHelper();
-        int commentsOpen = 0;
-        int annotationsOpen = 0;
-
-        for (int i = 0; i < pgnLines.Length; i++)
-        {
-            if (!moveSection && pgnLines[i].StartsWith("["))
-            {
-                var match = infoRx.Match(pgnLines[i]);
-                if (match.Success)
-                {
-                    game.Infos[match.Groups[1].ToString().Trim()] = match.Groups[2].ToString();
-                }
-            }
-            else
-            {
-                if (pgnLines[i].StartsWith("1."))
-                {
-                    moveSection = true;
-                    if (game.Infos.ContainsKey("Variant") && game.Infos["Variant"] != "Standard")
-                    {
-                        return game;
-                    }
-                }
-                if (moveSection)
-                {
-                    string line = pgnLines[i];
-                    // ; comments
-                    if (line.Contains(";"))
-                    {
-                        line = line.Split(";")[0];
-                    }
-
-                    // {} comments
-                    Match closeCurley = closeCurleyRx.Match(line);
-                    if (closeCurley.Success)
-                    {
-                        line = line.Replace(closeCurley.Groups[1].Value, "");
-                        commentsOpen--;
-                    }
-
-                    Match openCurley = openCurleyRx.Match(line);
-                    if (openCurley.Success)
-                    {
-                        line = line.Replace(openCurley.Groups[1].Value, "");
-                        commentsOpen++;
-                    }
-
-                    Match comment = Regex.Match(line, @"(\{[^\{]+\})");
-                    while (comment.Success)
-                    {
-                        line = line.Replace(comment.Groups[1].Value, "");
-                        comment = comment.NextMatch();
-                    }
-
-                    // () annotations
-                    Match closeBracket = closeBracketRx.Match(line);
-                    if (closeBracket.Success)
-                    {
-                        line = line.Replace(closeBracket.Groups[1].Value, "");
-                        annotationsOpen--;
-                    }
-
-                    Match openBracket = openBracketRx.Match(line);
-                    if (openBracket.Success)
-                    {
-                        line = line.Replace(openBracket.Groups[1].Value, "");
-                        annotationsOpen++;
-                    }
-
-                    Match annotation = Regex.Match(line, @"\([^\[]+\)");
-                    while (annotation.Success)
-                    {
-                        line = line.Replace(annotation.Groups[1].Value, "");
-                        annotation = annotation.NextMatch();
-                    }
-
-                    if (annotationsOpen > 0 || commentsOpen > 0)
-                    {
-                        if (line == pgnLines[i])
-                        {
-                            continue;
-                        }
-                    }
-
-                    var moves = Regex.Split(line, @"\d+\.\.\.|\d+\.");
-                    for (int m = 0; m < moves.Length; m++)
-                    {
-                        var move = moves[m].Trim();
-                        if (String.IsNullOrEmpty(move))
-                        {
-                            continue;
-                        }
-                        var halfmoves = Regex.Split(move, @"\s+");
-                        for (int h = 0; h < halfmoves.Length; h++)
-                        {
-                            if (halfmoves[h] == "∓" || halfmoves[h] == "=" || halfmoves[h] == "(")
-                            {
-                                continue;
-                            }
-                            moveHelper.AddMove(halfmoves[h]);
-                            if (moveHelper.IsReady)
-                            {
-                                moveHelpers.Add(new MoveHelper(moveHelper));
-                                moveHelper = new MoveHelper();
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -319,9 +152,9 @@ public class Pgn
 
 
 
-        if (move.Contains("x"))
+        if (move.Contains('x', StringComparison.Ordinal))
         {
-            move = move.Replace("x", "");
+            move = move.Replace("x", "", StringComparison.Ordinal);
         }
 
         if (move == "0-0" || move == "O-O" || move == "o-o")
@@ -333,24 +166,24 @@ public class Pgn
             return new EngineMove(state.Pieces.First(f => f.Type == PieceType.King && f.IsBlack == isBlack).Position, new Position(2, isBlack ? 7 : 0));
         }
 
-        if (move.EndsWith("?!"))
+        if (move.EndsWith("?!", StringComparison.Ordinal))
         {
             move = move.Remove(move.Length - 2, 2);
         }
-        else if (move.EndsWith("??"))
+        else if (move.EndsWith("??", StringComparison.Ordinal))
         {
             move = move.Remove(move.Length - 2, 2);
         }
-        else if (move.EndsWith("!"))
+        else if (move.EndsWith("!", StringComparison.Ordinal))
         {
             move = move.Remove(move.Length - 1, 1);
         }
-        else if (move.EndsWith("?"))
+        else if (move.EndsWith("?", StringComparison.Ordinal))
         {
             move = move.Remove(move.Length - 1, 1);
         }
 
-        if (move.EndsWith("+"))
+        if (move.EndsWith("+", StringComparison.Ordinal))
         {
             move = move.Remove(move.Length - 1, 1);
         }
@@ -368,7 +201,7 @@ public class Pgn
         }
 
         PieceType? transformation = null;
-        if (pgnMove.Contains("="))
+        if (pgnMove.Contains('=', StringComparison.Ordinal))
         {
             transformation = Map.GetPieceType(move.Last().ToString());
             move = move.Remove(move.Length - 2, 2);
@@ -380,9 +213,8 @@ public class Pgn
         int destX = 0;
         if (move.Length > 2)
         {
-            int ifrom;
             from = move[0];
-            if (int.TryParse(from.ToString(), out ifrom))
+            if (int.TryParse(from.ToString(), out int ifrom))
             {
                 potentialPieces = potentialPieces.Where(x => x.Position.Y == ifrom - 1).ToList();
             }
@@ -403,7 +235,7 @@ public class Pgn
             destX = Map.GetIntColumn(move[0]);
         }
 
-        Position destination = new Position(destX, int.Parse(move[1].ToString()) - 1);
+        Position destination = new(destX, int.Parse(move[1].ToString(), CultureInfo.InvariantCulture) - 1);
         Piece? piece = null;
         if (potentialPieces.Count == 1)
         {
@@ -434,21 +266,22 @@ public class Pgn
         }
         else
         {
-            throw new Exception($"pgn move invalid: {pgnMove}");
-            // return null;
+            throw new ArgumentOutOfRangeException($"pgn move invalid: {pgnMove}");
         }
     }
 
     public static string MapPieces(State state)
     {
-
-        StringBuilder sb = new StringBuilder();
-        //sb.Append($"1. ");
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+        StringBuilder sb = new();
         for (int i = 0; i < state.Moves.Count; i++)
         {
             if (i % 2 == 0)
             {
-                sb.Append($"{(int)(i / 2) + 1}. ");
+                sb.Append(CultureInfo.InvariantCulture, $"{(int)(i / 2) + 1}. ");
             }
             sb.Append(state.Moves[i].PgnMove);
             sb.Append(' ');
@@ -458,6 +291,14 @@ public class Pgn
 
     public static string MapPiece(Move move, State state)
     {
+        if (move == null)
+        {
+            throw new ArgumentNullException(nameof(move));
+        }
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
         if (move.IsCastle)
         {
             if (move.OldPosition.X < move.NewPosition.X)
@@ -470,10 +311,10 @@ public class Pgn
             }
         }
 
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new();
         if (move.Piece.Type != PieceType.Pawn)
         {
-            sb.Append(Map.GetPieceString(move.Piece.Type).ToUpper());
+            sb.Append(Map.GetPieceString(move.Piece.Type).ToUpperInvariant());
         }
         else if (move.Capture != null)
         {
@@ -508,13 +349,21 @@ public class Pgn
 
         if (move.Transformation != null && move.Piece.Type == PieceType.Pawn)
         {
-            sb.Append(Map.GetPieceString((PieceType)move.Transformation).ToUpper());
+            sb.Append(Map.GetPieceString((PieceType)move.Transformation).ToUpperInvariant());
         }
         return sb.ToString();
     }
 
     public static string GetPgnMove(EngineMove move, State state)
     {
+        if (move == null)
+        {
+            throw new ArgumentNullException(nameof(move));
+        }
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
         Piece piece = state.Pieces.Single(s => s.Position == move.OldPosition);
 
         if (piece.Type == PieceType.King && Math.Abs(move.OldPosition.X - move.NewPosition.X) > 1)
@@ -531,10 +380,10 @@ public class Pgn
 
         Piece? capture = state.Pieces.FirstOrDefault(f => f.Position == move.NewPosition);
 
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new();
         if (piece.Type != PieceType.Pawn)
         {
-            sb.Append(Map.GetPieceString(piece.Type).ToUpper());
+            sb.Append(Map.GetPieceString(piece.Type).ToUpperInvariant());
         }
         else if (capture != null)
         {
@@ -569,12 +418,12 @@ public class Pgn
 
         if (move.Transformation != null && piece.Type == PieceType.Pawn)
         {
-            sb.Append(Map.GetPieceString((PieceType)move.Transformation).ToUpper());
+            sb.Append(Map.GetPieceString((PieceType)move.Transformation).ToUpperInvariant());
         }
         return sb.ToString();
     }
 
-    public record MoveHelper
+    internal sealed record MoveHelper
     {
         public int MoveNumber { get; set; }
         public string WhiteMove { get; set; } = String.Empty;

@@ -1,8 +1,20 @@
 ﻿namespace pax.chess.Validation;
-public partial class Validate
+public static partial class Validate
 {
-    public static MoveState TryExecuteMove(EngineMove engineMove, State state, PieceType? transformation = null)
+    /// <summary>
+    /// Tries to execute the given move
+    /// </summary>
+    /// <returns>MoveState.Ok if successful.</returns>
+    public static MoveState TryExecuteMove(EngineMove engineMove, State state)
     {
+        if (engineMove == null)
+        {
+            throw new ArgumentNullException(nameof(engineMove));
+        }
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
         Piece? pieceToMove = state.Pieces.SingleOrDefault(s => s.Position == engineMove.OldPosition);
 
         if (pieceToMove == null)
@@ -55,7 +67,7 @@ public partial class Validate
         return MoveState.Ok;
     }
 
-    public static bool IsValidCastle(Piece king, EngineMove engineMove, State state)
+    private static bool IsValidCastle(Piece king, EngineMove engineMove, State state)
     {
         if (state.Info.IsCheck)
         {
@@ -101,25 +113,9 @@ public partial class Validate
         return true;
     }
 
-    //public static bool IsCheck(State state)
-    //{
-    //    var possibleAttacers = state.Pieces.Where(x => x.IsBlack == state.Info.BlackToMove && x.Type != PieceType.King).ToList();
-    //    var king = state.Pieces.Single(s => s.Type == PieceType.King && s.IsBlack != state.Info.BlackToMove);
-
-    //    for (int i = 0; i < possibleAttacers.Count; i++)
-    //    {
-    //        var moves = GetMoves(possibleAttacers[i], state);
-    //        if (moves.Contains(king.Position))
-    //        {
-    //            return true;
-    //        }
-    //    }
-    //    return false;
-    //}
-
-    public static bool WouldBeCheck(Piece piece, Position destination, PieceType? transformation, State state)
+    internal static bool WouldBeCheck(Piece piece, Position destination, PieceType? transformation, State state)
     {
-        EngineMove testMove = new EngineMove(piece.Position, destination, transformation);
+        EngineMove testMove = new(piece.Position, destination, transformation);
         state.ExecuteMove(testMove);
         bool isCheck = state.IsCheck(state.Pieces.Single(s => s.IsBlack == piece.IsBlack && s.Type == PieceType.King));
         state.RevertMove();
@@ -133,7 +129,7 @@ public partial class Validate
         }
     }
 
-    public static bool IsCheckMate(State state)
+    internal static bool IsCheckMate(State state)
     {
         if (state.Info.IsCheck)
         {
@@ -150,8 +146,8 @@ public partial class Validate
             pieces.Remove(king);
             for (int i = 0; i < pieces.Count; i++)
             {
-                var piecemoves = Validate.GetMoves(pieces[i], state, PieceType.Queen);
-                for (int j = 0; j < piecemoves.Count; j++)
+                var piecemoves = GetMoves(pieces[i], state).ToArray();
+                for (int j = 0; j < piecemoves.Length; j++)
                 {
                     bool couldPromote = pieces[i].Type == PieceType.Pawn && (piecemoves[j].Y == 0 || piecemoves[j].Y == 7);
                     if (!WouldBeCheck(pieces[i], piecemoves[j], couldPromote ? PieceType.Queen : null, state))
@@ -165,8 +161,19 @@ public partial class Validate
         return false;
     }
 
+    /// <summary>
+    /// Validates if the color of the piece to move fits the state
+    /// </summary>
     public static bool IsMyTurn(Piece piece, State state)
     {
+        if (piece == null)
+        {
+            throw new ArgumentNullException(nameof(piece));
+        }
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
         if ((state.Info.BlackToMove && !piece.IsBlack)
          || (!state.Info.BlackToMove && piece.IsBlack)
         )

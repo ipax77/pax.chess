@@ -1,5 +1,5 @@
 ﻿namespace pax.chess.Validation;
-public partial class Validate
+public static partial class Validate
 {
     private static List<Position> GetQueenMoves(Piece piece, List<Piece> pieces)
     {

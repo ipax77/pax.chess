@@ -1,12 +1,16 @@
-﻿namespace pax.chess;
+﻿using System.Diagnostics.CodeAnalysis;
+namespace pax.chess;
 public static class Zobrist
 {
-    private static Random random = new Random(1070372);
-    private static HashSet<uint> randomNumbers = new HashSet<uint>();
-    private static List<uint> Numbers = new List<uint>();
-    private static uint[][] PieceNumbers = new uint[14][];
+    private static readonly Random random = new(1070372);
+    private static readonly HashSet<uint> randomNumbers = new();
+    private static readonly List<uint> Numbers = new();
+    private static readonly uint[][] PieceNumbers = new uint[14][];
     private static uint Start;
 
+    /// <summary>
+    /// Initializes the zobrist hash table
+    /// </summary>
     public static void Init()
     {
         Start = GetUniqueRandomNumber();
@@ -47,14 +51,28 @@ public static class Zobrist
         }
     }
 
+    /// <summary>
+    /// Calculates the zobrist uint hash for the game state
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// First call initializes the hash-table in not already
+    /// inizialized with Init
+    /// </para>
+    /// </remarks>    
     public static uint GetHashCode(State state)
     {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+
         if (Start == 0)
         {
             Init();
         }
 
-        List<uint> numbers = new List<uint>();
+        List<uint> numbers = new();
 
         numbers.Add(state.Info.BlackToMove ? Numbers[1] : Numbers[0]);
         if (state.Info.WhiteCanCastleKingSide)
@@ -102,8 +120,12 @@ public static class Zobrist
         return PieceNumbers[pieceNum][square];
     }
 
+    [SuppressMessage(
+        "Usage", "CA5394:Do not use insecure randomness",
+        Justification = "No security concerns - the zobrist hash table is public")]
     private static uint GetUniqueRandomNumber()
     {
+
         uint i = (uint)random.Next();
         while (randomNumbers.Contains(i))
         {

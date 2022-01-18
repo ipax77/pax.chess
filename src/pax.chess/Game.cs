@@ -1,12 +1,12 @@
 ﻿using pax.chess.Validation;
-using System.Text;
+using System.Collections.Generic;
 
 namespace pax.chess;
 
 public class Game
 {
     public string Name { get; set; } = String.Empty;
-    public Guid Guid { get; private set; }
+    public Guid GameGuid { get; private set; }
 
     public Time Time { get; set; }
     public Result Result { get; set; }
@@ -15,7 +15,7 @@ public class Game
     public State State { get; internal set; } = new State();
     public State ObserverState { get; internal set; } = new State();
     public Dictionary<Move, List<Variation>> Variations { get; init; } = new Dictionary<Move, List<Variation>>();
-    public Dictionary<int, List<Variation>> ReviewVariations { get; set; } = new Dictionary<int, List<Variation>>();
+    public Dictionary<int, List<Variation>> ReviewVariations { get; init; } = new Dictionary<int, List<Variation>>();
     public string? StartFen { get; private set; }
     public event EventHandler<EventArgs>? ObserverMoved;
 
@@ -23,16 +23,20 @@ public class Game
     {
         State = Fen.MapString(fen);
         ObserverState = new(State);
-        Guid = Guid.NewGuid();
+        GameGuid = Guid.NewGuid();
         Time = new Time(TimeSpan.FromMinutes(3), TimeSpan.FromSeconds(2));
         StartFen = fen;
     }
 
     public Game(Game game)
     {
+        if (game == null)
+        {
+            throw new ArgumentNullException(nameof(game));
+        }
         State = new(game.State);
         ObserverState = new(game.ObserverState);
-        Guid = Guid.NewGuid();
+        GameGuid = Guid.NewGuid();
         Time = new Time(TimeSpan.FromMinutes(3), TimeSpan.FromSeconds(2));
     }
 
@@ -69,24 +73,36 @@ public class Game
 
     public MoveState Move(Piece piece, int x, int y, PieceType? transformation = null, bool dry = false)
     {
-        EngineMove engineMove = new EngineMove(new(piece.Position), new Position(x, y), transformation);
+        if (piece == null)
+        {
+            throw new ArgumentNullException(nameof(piece));
+        }
+        EngineMove engineMove = new(new(piece.Position), new Position(x, y), transformation);
         return Move(engineMove, dry);
     }
 
     public MoveState Move(Move move, bool dry = false)
     {
-        EngineMove engineMove = new EngineMove(new(move.OldPosition), new(move.NewPosition), move.Transformation);
+        if (move == null)
+        {
+            throw new ArgumentNullException(nameof(move));
+        }
+        EngineMove engineMove = new(new(move.OldPosition), new(move.NewPosition), move.Transformation);
         return Move(engineMove, dry);
     }
 
     public MoveState Move(EngineMove move, bool dry = false)
     {
+        if (move == null)
+        {
+            throw new ArgumentNullException(nameof(move));
+        }
         if (dry)
         {
             State.ExecuteMove(move);
             return MoveState.Ok;
         }
-        var moveState = Validate.TryExecuteMove(move, State, move.Transformation);
+        var moveState = Validate.TryExecuteMove(move, State);
         if (moveState == MoveState.Ok)
         {
             if (State.Info.IsCheckMate)
@@ -100,67 +116,6 @@ public class Game
         {
             return moveState;
         }
-    }
-
-    public string PgnMove(Move move, State state)
-    {
-        if (move.IsCastle)
-        {
-            if (move.NewPosition.X == 2)
-            {
-                return "O-O-O";
-            }
-            else
-            {
-                return "O-O";
-            }
-        }
-        StringBuilder sb = new StringBuilder();
-        if (move.Piece.Type != PieceType.Pawn)
-        {
-            sb.Append(Map.GetPieceString(move.Piece.Type).ToUpper());
-        }
-        else if (move.Capture != null)
-        {
-            sb.Append(Map.GetCharColumn(move.OldPosition.X));
-            sb.Append('x');
-        }
-        if (move.Piece.Type == PieceType.Knight || move.Piece.Type == PieceType.Rook)
-        {
-            var alternatePiece = state.Pieces.FirstOrDefault(x => x.Type == move.Piece.Type && x.IsBlack == move.Piece.IsBlack && x != move.Piece);
-            if (alternatePiece != null)
-            {
-                var positions = Validation.Validate.GetMoves(alternatePiece, state);
-                if (positions.Contains(move.NewPosition))
-                {
-
-                    if (alternatePiece.Position.X == move.OldPosition.X)
-                    {
-                        sb.Append(move.OldPosition.Y + 1);
-                    }
-                    else if (alternatePiece.Position.Y == move.OldPosition.Y)
-                    {
-                        sb.Append(Map.GetCharColumn(move.OldPosition.X));
-                    }
-                    else
-                    {
-                        sb.Append(Map.GetCharColumn(move.OldPosition.X));
-                    }
-                }
-            }
-        }
-        if (move.Capture != null && move.Piece.Type != PieceType.Pawn)
-        {
-            sb.Append('x');
-        }
-        sb.Append(Map.GetCharColumn(move.NewPosition.X));
-        sb.Append(move.NewPosition.Y + 1);
-
-        if (move.Transformation != null && move.Piece.Type == PieceType.Pawn)
-        {
-            sb.Append(Map.GetPieceString((PieceType)move.Transformation).ToUpper());
-        }
-        return sb.ToString();
     }
 
     public void Revert()
@@ -198,7 +153,7 @@ public class Game
                 var move = ObserverState.CurrentMove.Variation.Moves[pos + 1];
 
                 var moveVariation = ObserverState.CurrentMove.Variation;
-                var moveState = Validate.TryExecuteMove(move.EngineMove, ObserverState, move.Transformation);
+                var moveState = Validate.TryExecuteMove(move.EngineMove, ObserverState);
                 if (moveState == MoveState.Ok && ObserverState.CurrentMove != null)
                 {
                     ObserverState.CurrentMove.Variation = moveVariation;
@@ -227,6 +182,10 @@ public class Game
 
     public void ObserverMoveTo(Move move)
     {
+        if (move == null)
+        {
+            throw new ArgumentNullException(nameof(move));
+        }
         List<Move> moves;
         if (move.Variation == null)
         {
@@ -236,7 +195,7 @@ public class Game
         {
             moves = move.Variation.StartMove > 1 ? State.Moves.GetRange(0, move.Variation.StartMove) : new List<Move>();
 
-            List<Move> reverseMoves = new List<Move>();
+            List<Move> reverseMoves = new();
             int pos = move.Variation.Moves.IndexOf(move);
             for (int i = pos; i >= 0; i--)
             {
@@ -246,7 +205,7 @@ public class Game
             var variation = move.Variation;
             int rootStartMove = variation.RootStartMove;
 
-            List<Variation> variations = new List<Variation>();
+            List<Variation> variations = new();
             while (variation.RootVariation != null)
             {
                 variations.Add(variation.RootVariation);
@@ -270,7 +229,11 @@ public class Game
 
     public MoveState VariationMove(Piece piece, int x, int y, PieceType? transformation)
     {
-        EngineMove move = new EngineMove(piece.Position, new Position(x, y), transformation);
+        if (piece == null)
+        {
+            throw new ArgumentNullException(nameof(piece));
+        }
+        EngineMove move = new(piece.Position, new Position(x, y), transformation);
         return VariationMove(move);
     }
 
@@ -306,7 +269,7 @@ public class Game
             Variations[startMove].Add(moveVariation);
         }
 
-        var moveState = Validate.TryExecuteMove(engineMove, ObserverState, engineMove.Transformation);
+        var moveState = Validate.TryExecuteMove(engineMove, ObserverState);
         if (moveState == MoveState.Ok && ObserverState.CurrentMove != null)
         {
             ObserverState.CurrentMove.Variation = moveVariation;
@@ -319,12 +282,16 @@ public class Game
         return moveState;
     }
 
-    public void CreateVariation(int startMoveId, List<EngineMove> engineMoves, Evaluation? eval)
+    public void CreateVariation(int startMoveId, EngineMove[] engineMoves, Evaluation? eval)
     {
+        if (engineMoves == null)
+        {
+            throw new ArgumentNullException(nameof(engineMoves));
+        }
         var startMove = State.Moves[startMoveId];
         ObserverMoveTo(startMove);
         ObserverMoveBackward();
-        for (int i = 0; i < engineMoves.Count; i++)
+        for (int i = 0; i < engineMoves.Length; i++)
         {
             var result = VariationMove(engineMoves[i]);
             if (result != MoveState.Ok)
@@ -336,7 +303,7 @@ public class Game
         OnObserverMoved(EventArgs.Empty);
     }
 
-    public List<Variation> GetReviewVariations()
+    public ICollection<Variation> GetCurrentReviewVariations()
     {
         if (ObserverState.CurrentMove != null && ObserverState.CurrentMove.Variation != null)
         {

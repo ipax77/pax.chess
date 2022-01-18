@@ -1,6 +1,7 @@
 ﻿namespace pax.chess;
 public enum PieceType
 {
+    None = 0,
     Pawn = 1,
     Knight = 2,
     Bishop = 3,

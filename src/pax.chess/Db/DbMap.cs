@@ -1,15 +1,27 @@
 ﻿using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
 
 namespace pax.chess;
 
+/// <summary>
+/// Mapping between database and API objects
+/// </summary>
 public static class DbMap
 {
-    private static Regex moveRx = new Regex(@"(\w\d\w\d[QRNB]?)");
+    private static readonly Regex moveRx = new(@"(\w\d\w\d[QRNB]?)");
 
+    /// <summary>
+    /// Converts database object to API object
+    /// </summary>
     public static Game GetGame(DbGame dbGame, string? name = null)
     {
-        Game game = new Game();
+        if (dbGame == null)
+        {
+            throw new ArgumentNullException(nameof(dbGame));
+        }
+
+        Game game = new();
         if (name != null)
         {
             game.Name = name;
@@ -20,7 +32,7 @@ public static class DbMap
             var state = game.Move(move);
             if (state != MoveState.Ok)
             {
-                throw new Exception($"failed executing db enginemove: {move}");
+                throw new MoveException($"failed executing db enginemove: {move}");
             }
         }
 
@@ -34,7 +46,7 @@ public static class DbMap
             {
                 var variation = GetVariation(game, eval.StartMove, eval.EngineMoves);
                 variation.Pv = eval.Pv;
-                variation.Evaluation = new Evaluation((int)(eval.Score * 100.0m), 0, false);
+                variation.Evaluation = new((int)(eval.Score * 100.0m), 0, false);
                 variation.Evaluation.MoveQuality = eval.MoveQuality;
                 if (variation.Pv == 1)
                 {
@@ -77,8 +89,13 @@ public static class DbMap
         return game;
     }
 
-    public static Variation GetVariation(Game game, int startMoveId, string engineMoves)
+    private static Variation GetVariation(Game game, int startMoveId, string engineMoves)
     {
+        if (game == null)
+        {
+            throw new ArgumentNullException(nameof(game));
+        }
+
         var moves = GetEngineMoves(engineMoves);
 
         var startMove = game.State.Moves[startMoveId];
@@ -91,9 +108,12 @@ public static class DbMap
         return game.Variations[startMove].Last();
     }
 
+    /// <summary>
+    /// Converts database move string to Game object
+    /// </summary>
     public static Game GetGame(string engineMoves)
     {
-        Game game = new Game();
+        Game game = new();
 
         var moves = GetEngineMoves(engineMoves);
         foreach (var move in moves)
@@ -101,15 +121,15 @@ public static class DbMap
             var state = game.Move(move);
             if (state != MoveState.Ok)
             {
-                throw new Exception($"failed executing db enginemove: {move}");
+                throw new MoveException($"failed executing db enginemove: {move}");
             }
         }
         return game;
     }
 
-    public static List<EngineMove> GetEngineMoves(string engineMoves)
+    private static List<EngineMove> GetEngineMoves(string engineMoves)
     {
-        List<EngineMove> moves = new List<EngineMove>();
+        List<EngineMove> moves = new();
         Match m = moveRx.Match(engineMoves);
         while (m.Success)
         {
@@ -120,23 +140,30 @@ public static class DbMap
             }
             else
             {
-                throw new Exception($"failed mapping db enginemove: {m.Groups[1].Value}");
+                throw new MoveMapException($"failed mapping db enginemove: {m.Groups[1].Value}");
             }
             m = m.NextMatch();
         }
         return moves;
     }
 
+    /// <summary>
+    /// Converts API object to database object
+    /// </summary>
     public static DbGame GetGame(Game game)
     {
-        DbGame dbGame = new DbGame();
+        if (game == null)
+        {
+            throw new ArgumentNullException(nameof(game));
+        }
+        DbGame dbGame = new();
         SetGameInfo(dbGame, game);
         dbGame.HalfMoves = game.State.Moves.Count;
         dbGame.EngineMoves = String.Concat(game.State.Moves.Select(s => Map.GetEngineMoveString(s)));
         return dbGame;
     }
 
-    public static void SetGameInfo(DbGame dbGame, Game game)
+    private static void SetGameInfo(DbGame dbGame, Game game)
     {
         if (game.Infos.Any())
         {
@@ -154,7 +181,7 @@ public static class DbMap
             }
             else
             {
-                dbGame.Site = game.Guid.ToString();
+                dbGame.Site = game.GameGuid.ToString();
             }
             if (game.Infos.ContainsKey("UTCDate"))
             {
@@ -174,16 +201,14 @@ public static class DbMap
             }
             if (game.Infos.ContainsKey("WhiteElo"))
             {
-                short elo;
-                if (short.TryParse(game.Infos["WhiteElo"], out elo))
+                if (short.TryParse(game.Infos["WhiteElo"], out short elo))
                 {
                     dbGame.WhiteElo = elo;
                 }
             }
             if (game.Infos.ContainsKey("BlackElo"))
             {
-                short elo;
-                if (short.TryParse(game.Infos["BlackElo"], out elo))
+                if (short.TryParse(game.Infos["BlackElo"], out short elo))
                 {
                     dbGame.BlackElo = elo;
                 }
@@ -235,9 +260,13 @@ public static class DbMap
         }
     }
 
-    public static List<DbVariation> GetVariations(Game game)
+    private static List<DbVariation> GetVariations(Game game)
     {
-        List<DbVariation> variations = new List<DbVariation>();
+        if (game == null)
+        {
+            throw new ArgumentNullException(nameof(game));
+        }
+        List<DbVariation> variations = new();
         foreach (var ent in game.Variations)
         {
             foreach (var variation in ent.Value.Where(x => x.RootVariation == null))
@@ -251,7 +280,7 @@ public static class DbMap
                         Mate = (sbyte)variation.Evaluation.Mate
                     };
                 }
-                DbVariation dbVariation = new DbVariation()
+                DbVariation dbVariation = new()
                 {
                     StartMove = variation.StartMove,
                     EngineMoves = String.Concat(variation.Moves.Select(s => s.ToString())),
@@ -274,14 +303,34 @@ public static class DbMap
         return variations;
     }
 
-    public static List<DbMoveEvaluation> GetMoveEvaluations(Game game)
+    /// <summary>
+    /// Updates existing database object with given game
+    /// </summary>
+    public static void UpdateDbGame(DbGame dbGame, Game game)
+    {
+        if (dbGame == null)
+        {
+            throw new ArgumentNullException(nameof(dbGame));
+        }
+        if (game == null)
+        {
+            throw new ArgumentNullException(nameof(game));
+        }
+        SetGameInfo(dbGame, game);
+        dbGame.HalfMoves = game.State.Moves.Count;
+        dbGame.EngineMoves = String.Concat(game.State.Moves.Select(s => Map.GetEngineMoveString(s)));
+        GetVariations(game).ForEach(f => dbGame.Variations.Add(f));
+        GetMoveEvaluations(game).ForEach(f => dbGame.MoveEvaluations.Add(f));
+    }
+
+    private static List<DbMoveEvaluation> GetMoveEvaluations(Game game)
     {
         if (!game.ReviewVariations.Any())
         {
             return new List<DbMoveEvaluation>();
         }
 
-        List<DbMoveEvaluation> evals = new List<DbMoveEvaluation>();
+        List<DbMoveEvaluation> evals = new();
         foreach (var ent in game.ReviewVariations)
         {
             foreach (var variation in ent.Value)

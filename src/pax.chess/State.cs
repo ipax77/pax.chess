@@ -1,6 +1,10 @@
 ﻿using pax.chess.Validation;
-
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 namespace pax.chess;
+[SuppressMessage(
+    "Usage", "CA1002:Do not expose generic lists",
+    Justification = "I'd argue with performance ..")]
 public record State
 {
     public StateInfo Info { get; internal set; } = new StateInfo();
@@ -11,6 +15,10 @@ public record State
     public State() { }
     public State(State state)
     {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
         Info = new(state.Info);
         Pieces = new List<Piece>(state.Pieces.Select(s => new Piece(s)));
         Moves = new List<Move>(state.Moves.Select(s => new Move(s)));
@@ -24,7 +32,7 @@ public record State
         Pieces = new List<Piece>(state.Pieces);
         for (int i = 0; i < moves.Count; i++)
         {
-            var moveState = Validate.TryExecuteMove(moves[i].EngineMove, this, moves[i].Transformation);
+            var moveState = Validate.TryExecuteMove(moves[i].EngineMove, this);
             if (moveState == MoveState.Ok && CurrentMove != null)
             {
                 CurrentMove.Variation = moves[i].Variation;
@@ -38,10 +46,10 @@ public record State
         Piece? pieceToMove = Pieces.SingleOrDefault(f => f.Position == engineMove.OldPosition);
         if (pieceToMove == null)
         {
-            throw new Exception($"No piece found at position {engineMove.OldPosition}");
+            throw new ArgumentOutOfRangeException($"No piece found at position {engineMove.OldPosition}");
         }
 
-        Move move = new Move(pieceToMove, engineMove.NewPosition, Moves.Count, engineMove.Transformation);
+        Move move = new(pieceToMove, engineMove.NewPosition, Moves.Count, engineMove.Transformation);
         move.StateInfo = new(Info);
 
         Info.BlackToMove = !Info.BlackToMove;
@@ -241,7 +249,7 @@ public record State
         return CurrentMove.Variation == move.Variation && CurrentMove.HalfMoveNumber == move.HalfMoveNumber;
     }
 
-    public List<Position> ValidPositions(Piece piece)
+    public IReadOnlyCollection<Position> ValidPositions(Piece piece)
     {
         if (!Validate.IsMyTurn(piece, this))
         {

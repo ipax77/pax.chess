@@ -1,16 +1,17 @@
 ﻿using System.Text;
+using System.Globalization;
 
 namespace pax.chess;
-public class Fen
+public static class Fen
 {
-    public static State MapString(string? fen = null)
+    internal static State MapString(string? fen = null)
     {
         // rnbqkb1r/pppp1ppp/8/4p3/4nP2/3P4/PPP1N1PP/RNBQKB1R b KQkq - 0 4
         if (String.IsNullOrEmpty(fen))
         {
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         }
-        State state = new State();
+        State state = new();
         var lines = fen.Split("/");
         var infos = lines[7].Split(" ");
         lines[7] = infos[0];
@@ -18,19 +19,19 @@ public class Fen
 
         state.Info.BlackToMove = infos[1] == "b";
 
-        if (!infos[2].Contains('K'))
+        if (!infos[2].Contains('K', StringComparison.Ordinal))
         {
             state.Info.WhiteCanCastleKingSide = false;
         }
-        if (!infos[2].Contains('Q'))
+        if (!infos[2].Contains('Q', StringComparison.Ordinal))
         {
             state.Info.WhiteCanCastleQueenSide = false;
         }
-        if (!infos[2].Contains('k'))
+        if (!infos[2].Contains('k', StringComparison.Ordinal))
         {
             state.Info.BlackCanCastleKingSide = false;
         }
-        if (!infos[2].Contains('q'))
+        if (!infos[2].Contains('q', StringComparison.Ordinal))
         {
             state.Info.BlackCanCastleQueenSide = false;
         }
@@ -38,36 +39,24 @@ public class Fen
         if (infos[3] != "-")
         {
             int x = Map.GetIntColumn(infos[2][0]);
-            int y;
-            if (int.TryParse(infos[2][1].ToString(), out y))
+            if (int.TryParse(infos[2][1].ToString(), out int y))
             {
                 state.Info.EnPassantPosition = new Position(x, y - 1);
             }
             else
             {
-                throw new Exception($"invalid enpassant info: {infos[2]}");
+                throw new ArgumentOutOfRangeException($"invalid enpassant info: {infos[2]}");
             }
         }
 
-        int pawnmoves;
-        if (int.TryParse(infos[4], out pawnmoves))
+        if (int.TryParse(infos[4], out int pawnmoves))
         {
             state.Info.PawnHalfMoveClock = pawnmoves;
         }
         else
         {
-            throw new Exception($"invalid pawn half moves: {infos[4]}");
+            throw new ArgumentOutOfRangeException($"invalid pawn half moves: {infos[4]}");
         }
-
-        //int moves;
-        //if (int.TryParse(infos[5], out moves))
-        //{
-        //    state.FullMoveNumber = moves;
-        //}
-        //else
-        //{
-        //    throw new Exception($"invalid moves: {infos[5]}");
-        //}
 
         state.Info.IsCheck = state.IsCheck();
         if (state.Info.IsCheck)
@@ -80,7 +69,7 @@ public class Fen
 
     private static List<Piece> MapPieces(string[] fenLines)
     {
-        List<Piece> pieces = new List<Piece>();
+        List<Piece> pieces = new();
         for (int y = 0; y < 8; y++)
         {
             int x = 0;
@@ -88,8 +77,7 @@ public class Fen
             {
                 string? interest = null;
                 char c = fenLines[y][i];
-                int ci;
-                if (int.TryParse(new string(c, 1), out ci))
+                if (int.TryParse(new string(c, 1), out int ci))
                 {
                     x += ci - 1;
                 }
@@ -107,9 +95,17 @@ public class Fen
         return pieces;
     }
 
+    /// <summary>
+    /// Converts given state to FEN string
+    /// </summary>
+    /// <returns>FEN string</returns>
     public static string MapList(State state)
     {
-        StringBuilder sb = new StringBuilder();
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+        StringBuilder sb = new();
         for (int y = 0; y < 8; y++)
         {
             int c = 0;
@@ -123,7 +119,7 @@ public class Fen
                         sb.Append(c);
                     }
                     string pieceString = Map.GetPieceString(piece.Type);
-                    sb.Append(!piece.IsBlack ? pieceString.ToUpper() : pieceString);
+                    sb.Append(!piece.IsBlack ? pieceString.ToUpper(CultureInfo.InvariantCulture) : pieceString);
                     c = 0;
                 }
                 else
@@ -135,7 +131,7 @@ public class Fen
             {
                 sb.Append(c);
             }
-            sb.Append("/");
+            sb.Append('/');
         }
         sb.Length--;
         sb.Append(' ');
@@ -185,7 +181,7 @@ public class Fen
         if (state.Info.EnPassantPosition != null)
         {
             char x = Map.GetCharColumn(state.Info.EnPassantPosition.X);
-            var y = state.Info.EnPassantPosition.Y.ToString();
+            var y = state.Info.EnPassantPosition.Y.ToString(CultureInfo.InvariantCulture);
             sb.Append(x);
             sb.Append(y);
         }
