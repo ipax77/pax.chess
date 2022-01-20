@@ -31,9 +31,9 @@ public class DbGame
     public Termination Termination { get; set; }
     public string EngineMoves { get; set; } = String.Empty;
     public int HalfMoves { get; set; }
-    public virtual ICollection<DbPosition> Positions { get; set; }
-    public virtual ICollection<DbVariation> Variations { get; set; }
-    public virtual ICollection<DbMoveEvaluation> MoveEvaluations { get; set; }
+    public virtual ICollection<DbPosition> Positions { get; private set; }
+    public virtual ICollection<DbVariation> Variations { get; private set; }
+    public virtual ICollection<DbMoveEvaluation> MoveEvaluations { get; private set; }
     public DbGame()
     {
         Positions = new HashSet<DbPosition>();
@@ -46,7 +46,7 @@ public class DbPosition
 {
     public int Id { get; set; }
     public uint Position { get; set; }
-    public virtual ICollection<DbGame> Games { get; set; }
+    public virtual ICollection<DbGame> Games { get; private set; }
 
     public DbPosition()
     {
@@ -71,7 +71,7 @@ public class DbVariation
     public int StartMove { get; set; }
     public string EngineMoves { get; set; } = String.Empty;
     public DbEvaluation? Evaluation { get; set; }
-    public virtual ICollection<DbSubVariation> SubVariations { get; set; }
+    public virtual ICollection<DbSubVariation> SubVariations { get; private set; }
 
     public DbVariation()
     {
@@ -84,7 +84,7 @@ public class DbSubVariation
     public int Id { get; set; }
     public int RootStartMove { get; set; }
     public string EngineMovesWithSubs { get; set; } = String.Empty;
-    public DbVariation RootVariation { get; set; }
+    public DbVariation RootVariation { get; set; } = new DbVariation();
 }
 
 public class DbEvaluation

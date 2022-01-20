@@ -1,5 +1,5 @@
 ﻿namespace pax.chess;
-public record Position
+public sealed record Position
 {
     public byte X { get; set; }
     public byte Y { get; set; }
@@ -16,7 +16,7 @@ public record Position
 
     public Position(Position position)
     {
-        this.X = position.X;
+        this.X = position?.X ?? throw new ArgumentNullException(nameof(position));
         this.Y = position.Y;
     }
 

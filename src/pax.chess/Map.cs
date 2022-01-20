@@ -1,22 +1,23 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 
 namespace pax.chess;
 public static class Map
 {
-    public static PieceType GetPieceType(string c)
+    internal static PieceType GetPieceType(string c)
     {
-        return c.ToLower() switch
+        return c.ToUpperInvariant() switch
         {
-            "p" => PieceType.Pawn,
-            "n" => PieceType.Knight,
-            "b" => PieceType.Bishop,
-            "r" => PieceType.Rook,
-            "q" => PieceType.Queen,
-            "k" => PieceType.King,
-            _ => throw new Exception($"invalid piece char {c}")
+            "P" => PieceType.Pawn,
+            "N" => PieceType.Knight,
+            "B" => PieceType.Bishop,
+            "R" => PieceType.Rook,
+            "Q" => PieceType.Queen,
+            "K" => PieceType.King,
+            _ => throw new ArgumentOutOfRangeException($"invalid piece char {c}")
         };
     }
-    public static string GetPieceString(PieceType pieceType)
+    internal static string GetPieceString(PieceType pieceType)
     {
         return pieceType switch
         {
@@ -26,11 +27,11 @@ public static class Map
             PieceType.Rook => "r",
             PieceType.Queen => "q",
             PieceType.King => "k",
-            _ => throw new Exception($"invalid piece type {pieceType}")
+            _ => throw new ArgumentOutOfRangeException($"invalid piece type {pieceType}")
         };
     }
 
-    public static int GetIntColumn(char x)
+    internal static int GetIntColumn(char x)
     {
         return x switch
         {
@@ -42,7 +43,7 @@ public static class Map
             'f' => 5,
             'g' => 6,
             'h' => 7,
-            _ => throw new Exception($"invalid column {x}"),
+            _ => throw new ArgumentOutOfRangeException($"invalid column {x}"),
         };
     }
 
@@ -58,13 +59,13 @@ public static class Map
             5 => 'f',
             6 => 'g',
             7 => 'h',
-            _ => throw new Exception($"invalid column {x}"),
+            _ => throw new ArgumentOutOfRangeException($"invalid column {x}"),
         };
     }
 
     public static EngineMove? GetEngineMove(string? moveString)
     {
-        if (String.IsNullOrEmpty(moveString) || moveString.Length < 4 || moveString == "0000")
+        if (String.IsNullOrEmpty(moveString) || moveString.Length < 4 || moveString == "0000" || moveString == "(none)")
         {
             return null;
         }
@@ -73,43 +74,55 @@ public static class Map
         {
             pieceType = GetPieceType(moveString.Last().ToString());
         }
-        return new EngineMove(GetIntColumn(moveString[0]), int.Parse(moveString[1].ToString()) - 1, GetIntColumn(moveString[2]), int.Parse(moveString[3].ToString()) - 1, pieceType);
+        return new EngineMove(GetIntColumn(moveString[0]), int.Parse(moveString[1].ToString(), CultureInfo.InvariantCulture) - 1, GetIntColumn(moveString[2]), int.Parse(moveString[3].ToString(), CultureInfo.InvariantCulture) - 1, pieceType);
     }
 
     public static EngineMove GetValidEngineMove(string moveString)
     {
+        if (moveString == null)
+        {
+            throw new ArgumentNullException(nameof(moveString));
+        }
         PieceType? pieceType = null;
         if (moveString.Length > 4)
         {
             pieceType = GetPieceType(moveString.Last().ToString());
         }
-        return new EngineMove(GetIntColumn(moveString[0]), int.Parse(moveString[1].ToString()) - 1, GetIntColumn(moveString[2]), int.Parse(moveString[3].ToString()) - 1, pieceType);
+        return new EngineMove(GetIntColumn(moveString[0]), int.Parse(moveString[1].ToString(), CultureInfo.InvariantCulture) - 1, GetIntColumn(moveString[2]), int.Parse(moveString[3].ToString(), CultureInfo.InvariantCulture) - 1, pieceType);
     }
 
     public static string GetEngineMoveString(EngineMove move)
     {
-        StringBuilder sb = new StringBuilder();
+        if (move == null)
+        {
+            throw new ArgumentNullException(nameof(move));
+        }
+        StringBuilder sb = new();
         sb.Append(GetCharColumn(move.OldPosition.X));
         sb.Append(move.OldPosition.Y + 1);
         sb.Append(GetCharColumn(move.NewPosition.X));
         sb.Append(move.NewPosition.Y + 1);
         if (move.Transformation != null)
         {
-            sb.Append(GetPieceString((PieceType)move.Transformation).ToUpper());
+            sb.Append(GetPieceString((PieceType)move.Transformation).ToUpperInvariant());
         }
         return sb.ToString();
     }
 
     public static string GetEngineMoveString(Move move)
     {
-        StringBuilder sb = new StringBuilder();
+        if (move == null)
+        {
+            throw new ArgumentNullException(nameof(move));
+        }
+        StringBuilder sb = new();
         sb.Append(GetCharColumn(move.OldPosition.X));
         sb.Append(move.OldPosition.Y + 1);
         sb.Append(GetCharColumn(move.NewPosition.X));
         sb.Append(move.NewPosition.Y + 1);
         if (move.Transformation != null)
         {
-            sb.Append(GetPieceString((PieceType)move.Transformation).ToUpper());
+            sb.Append(GetPieceString((PieceType)move.Transformation).ToUpperInvariant());
         }
         return sb.ToString();
     }

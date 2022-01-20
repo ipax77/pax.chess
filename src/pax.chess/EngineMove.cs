@@ -1,5 +1,5 @@
 ﻿namespace pax.chess;
-public record EngineMove
+public sealed record EngineMove
 {
     public Position OldPosition { get; init; }
     public Position NewPosition { get; init; }
@@ -18,7 +18,7 @@ public record EngineMove
         Transformation = transformation;
     }
 
-    public EngineMove(EngineMove move)
+    internal EngineMove(EngineMove move)
     {
         OldPosition = new(move.OldPosition);
         NewPosition = new(move.NewPosition);
@@ -26,14 +26,4 @@ public record EngineMove
     }
 
     public override string ToString() => Map.GetEngineMoveString(this);
-}
-
-public record EngineMoveNum : EngineMove
-{
-    public int HalfMoveNumber { get; init; }
-
-    public EngineMoveNum(int num, EngineMove move) : base(move)
-    {
-        HalfMoveNumber = num;
-    }
 }

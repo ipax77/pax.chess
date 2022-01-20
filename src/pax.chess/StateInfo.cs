@@ -1,21 +1,21 @@
 ﻿namespace pax.chess;
 
-public record StateInfo
+public sealed record StateInfo
 {
-    public bool BlackToMove { get; internal set; } = false;
+    public bool BlackToMove { get; internal set; }
     public bool WhiteCanCastleKingSide { get; internal set; } = true;
     public bool WhiteCanCastleQueenSide { get; internal set; } = true;
     public bool BlackCanCastleKingSide { get; internal set; } = true;
     public bool BlackCanCastleQueenSide { get; internal set; } = true;
-    public Position? EnPassantPosition { get; internal set; } = null;
-    public int PawnHalfMoveClock { get; internal set; } = 0;
-    public bool IsCheck { get; internal set; } = false;
-    public bool IsCheckMate { get; internal set; } = false;
+    public Position? EnPassantPosition { get; internal set; }
+    public int PawnHalfMoveClock { get; internal set; }
+    public bool IsCheck { get; internal set; }
+    public bool IsCheckMate { get; internal set; }
 
     public StateInfo() { }
     public StateInfo(StateInfo info)
     {
-        BlackToMove = info.BlackToMove;
+        BlackToMove = info?.BlackToMove ?? throw new ArgumentNullException(nameof(info));
         WhiteCanCastleKingSide = info.WhiteCanCastleKingSide;
         WhiteCanCastleQueenSide = info.WhiteCanCastleQueenSide;
         BlackCanCastleKingSide = info.BlackCanCastleKingSide;
@@ -28,7 +28,7 @@ public record StateInfo
 
     public void Set(StateInfo info)
     {
-        BlackToMove = info.BlackToMove;
+        BlackToMove = info?.BlackToMove ?? throw new ArgumentNullException(nameof(info));
         WhiteCanCastleKingSide = info.WhiteCanCastleKingSide;
         WhiteCanCastleQueenSide = info.WhiteCanCastleQueenSide;
         BlackCanCastleKingSide = info.BlackCanCastleKingSide;

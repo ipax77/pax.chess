@@ -1,5 +1,5 @@
 ﻿namespace pax.chess.Validation;
-public partial class Validate
+public static partial class Validate
 {
     private static readonly int[][] KingDeltas = new int[8][]
     {
