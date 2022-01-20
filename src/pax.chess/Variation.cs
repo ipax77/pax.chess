@@ -20,21 +20,21 @@ public record Variation
         RootStartMove = rootStartMove;
     }
 
-    public Variation? FindRoot(Variation? variation)
+    public Variation? Find(Variation? variation)
     {
         if (variation == null)
         {
             return null;
         }
 
-        if (this.RootVariation == variation)
+        if (this == variation)
         {
-            return this.RootVariation;
+            return this;
         }
 
         foreach (var child in ChildVariations)
         {
-            var found = child.FindRoot(variation);
+            var found = child.Find(variation);
             if (found != null)
             {
                 return found;
