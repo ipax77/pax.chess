@@ -145,7 +145,7 @@ public static class Pgn
     {
         string move = pgnMove.Trim();
 
-        if (String.IsNullOrEmpty(move) || move == "1-0" || move == "0-1" || move == "1/2-1/2" || move == "0.5/0.5")
+        if (String.IsNullOrEmpty(move) || move == "1-0" || move == "0-1" || move == "1/2-1/2" || move == "0.5/0.5" || move == "*")
         {
             return null;
         }

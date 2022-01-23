@@ -80,6 +80,10 @@ public static class DbMap
             }
         }
 
+        SetGameInfo(game, dbGame);
+        game.Result = dbGame.Result;
+        game.Termination = dbGame.Termination;
+
         if (game.State.Moves.Any())
         {
             game.ObserverMoveTo(game.State.Moves.First());
@@ -159,6 +163,8 @@ public static class DbMap
         SetGameInfo(dbGame, game);
         dbGame.HalfMoves = game.State.Moves.Count;
         dbGame.EngineMoves = String.Concat(game.State.Moves.Select(s => Map.GetEngineMoveString(s)));
+        dbGame.Termination = game.Termination;
+        dbGame.Result = game.Result;
         return dbGame;
     }
 
@@ -256,6 +262,34 @@ public static class DbMap
                     _ => Termination.None
                 };
             }
+        }
+    }
+
+    private static void SetGameInfo(Game game, DbGame dbGame)
+    {
+        if (dbGame.Event != null)
+        {
+            game.Infos["Event"] = dbGame.Event;
+        }
+        if (dbGame.Site != null)
+        {
+            game.Infos["Site"] = dbGame.Site;
+        }
+        game.Infos["UTCDate"] = dbGame.UTCDate.ToString("yyyy.MM.dd", CultureInfo.InvariantCulture);
+        game.Infos["UTCTime"] = dbGame.UTCTime.ToString(@"HH\:mm\:ss", CultureInfo.InvariantCulture);
+        if (dbGame.White != null)
+        {
+            game.Infos["White"] = dbGame.White;
+        }
+        if (dbGame.Black != null)
+        {
+            game.Infos["Black"] = dbGame.Black;
+        }
+        game.Infos["WhiteElo"] = dbGame.WhiteElo.ToString(CultureInfo.InvariantCulture);
+        game.Infos["BlackElo"] = dbGame.BlackElo.ToString(CultureInfo.InvariantCulture);
+        if (dbGame.TimeControl != null)
+        {
+            game.Infos["TimeControl"] = dbGame.TimeControl;
         }
     }
 

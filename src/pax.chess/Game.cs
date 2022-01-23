@@ -273,6 +273,7 @@ public class Game
         {
             ObserverState.CurrentMove.Variation = moveVariation;
             moveVariation.Moves.Add(new(ObserverState.CurrentMove));
+            OnObserverMoved(EventArgs.Empty);
         }
         else
         {
