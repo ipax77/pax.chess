@@ -316,7 +316,7 @@ public static class DbMap
                 DbVariation dbVariation = new()
                 {
                     StartMove = variation.StartMove,
-                    EngineMoves = String.Concat(variation.Moves.Select(s => s.ToString())),
+                    EngineMoves = String.Concat(variation.Moves.Select(s => s.EngineMove.ToString())),
                     Evaluation = dbEvaluation
                 };
 
