@@ -69,7 +69,7 @@ public static class DbMap
 
         if (dbGame.Variations.Any())
         {
-            foreach (var dbVariation in dbGame.Variations)
+            foreach (var dbVariation in dbGame.Variations.Where(x => x.EngineMoves.Any()))
             {
                 var variation = GetVariation(game, dbVariation.StartMove, dbVariation.EngineMoves);
                 if (dbVariation.Evaluation != null)
@@ -302,7 +302,7 @@ public static class DbMap
         List<DbVariation> variations = new();
         foreach (var ent in game.Variations)
         {
-            foreach (var variation in ent.Value.Where(x => x.RootVariation == null))
+            foreach (var variation in ent.Value.Where(x => x.RootVariation == null && x.Moves.Any()))
             {
                 DbEvaluation? dbEvaluation = null;
                 if (variation.Evaluation != null)
@@ -320,7 +320,7 @@ public static class DbMap
                     Evaluation = dbEvaluation
                 };
 
-                foreach (var subvariation in ent.Value.Where(x => x.RootVariation == variation))
+                foreach (var subvariation in ent.Value.Where(x => x.RootVariation == variation && x.Moves.Any()))
                 {
                     // todo recursive subsub search
                     dbVariation.SubVariations.Add(new DbSubVariation()

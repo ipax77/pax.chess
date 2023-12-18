@@ -166,14 +166,9 @@ public static partial class Validate
     /// </summary>
     public static bool IsMyTurn(Piece piece, State state)
     {
-        if (piece == null)
-        {
-            throw new ArgumentNullException(nameof(piece));
-        }
-        if (state == null)
-        {
-            throw new ArgumentNullException(nameof(state));
-        }
+        ArgumentNullException.ThrowIfNull(piece);
+        ArgumentNullException.ThrowIfNull(state);
+        
         if ((state.Info.BlackToMove && !piece.IsBlack)
          || (!state.Info.BlackToMove && piece.IsBlack)
         )

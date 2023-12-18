@@ -38,14 +38,14 @@ public static class Fen
 
         if (infos[3] != "-")
         {
-            int x = Map.GetIntColumn(infos[2][0]);
-            if (int.TryParse(infos[2][1].ToString(), out int y))
+            int x = Map.GetIntColumn(infos[3][0]);
+            if (int.TryParse(infos[3][1].ToString(), out int y))
             {
                 state.Info.EnPassantPosition = new Position(x, y - 1);
             }
             else
             {
-                throw new ArgumentOutOfRangeException($"invalid enpassant info: {infos[2]}");
+                throw new ArgumentOutOfRangeException($"invalid enpassant info: {infos[3]}");
             }
         }
 
@@ -101,10 +101,8 @@ public static class Fen
     /// <returns>FEN string</returns>
     public static string MapList(State state)
     {
-        if (state == null)
-        {
-            throw new ArgumentNullException(nameof(state));
-        }
+        ArgumentNullException.ThrowIfNull(state);
+
         StringBuilder sb = new();
         for (int y = 0; y < 8; y++)
         {

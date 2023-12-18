@@ -79,10 +79,7 @@ public static class Map
 
     public static EngineMove GetValidEngineMove(string moveString)
     {
-        if (moveString == null)
-        {
-            throw new ArgumentNullException(nameof(moveString));
-        }
+        ArgumentNullException.ThrowIfNull(moveString);
         PieceType? pieceType = null;
         if (moveString.Length > 4)
         {
@@ -93,10 +90,7 @@ public static class Map
 
     public static string GetEngineMoveString(EngineMove move)
     {
-        if (move == null)
-        {
-            throw new ArgumentNullException(nameof(move));
-        }
+        ArgumentNullException.ThrowIfNull(move);
         StringBuilder sb = new();
         sb.Append(GetCharColumn(move.OldPosition.X));
         sb.Append(move.OldPosition.Y + 1);
@@ -111,10 +105,7 @@ public static class Map
 
     public static string GetEngineMoveString(Move move)
     {
-        if (move == null)
-        {
-            throw new ArgumentNullException(nameof(move));
-        }
+        ArgumentNullException.ThrowIfNull(move);
         StringBuilder sb = new();
         sb.Append(GetCharColumn(move.OldPosition.X));
         sb.Append(move.OldPosition.Y + 1);

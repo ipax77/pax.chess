@@ -14,10 +14,7 @@ public record State
     public State() { }
     public State(State state)
     {
-        if (state == null)
-        {
-            throw new ArgumentNullException(nameof(state));
-        }
+        ArgumentNullException.ThrowIfNull(state);
         Info = new(state.Info);
         Pieces = new List<Piece>(state.Pieces.Select(s => new Piece(s)));
         Moves = new List<Move>(state.Moves.Select(s => new Move(s)));
@@ -208,7 +205,7 @@ public record State
 
         Info.Set(move.StateInfo);
         Moves.RemoveAt(Moves.Count - 1);
-        if (Moves.Any())
+        if (Moves.Count != 0)
         {
             CurrentMove = Moves.Last();
         }
