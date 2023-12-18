@@ -29,10 +29,7 @@ public class Game
 
     public Game(Game game)
     {
-        if (game == null)
-        {
-            throw new ArgumentNullException(nameof(game));
-        }
+        ArgumentNullException.ThrowIfNull(game);
         State = new(game.State);
         ObserverState = new(game.ObserverState);
         GameGuid = Guid.NewGuid();
@@ -72,30 +69,21 @@ public class Game
 
     public MoveState Move(Piece piece, int x, int y, PieceType? transformation = null, bool dry = false)
     {
-        if (piece == null)
-        {
-            throw new ArgumentNullException(nameof(piece));
-        }
+        ArgumentNullException.ThrowIfNull(piece);
         EngineMove engineMove = new(new(piece.Position), new Position(x, y), transformation);
         return Move(engineMove, dry);
     }
 
     public MoveState Move(Move move, bool dry = false)
     {
-        if (move == null)
-        {
-            throw new ArgumentNullException(nameof(move));
-        }
+        ArgumentNullException.ThrowIfNull(move);
         EngineMove engineMove = new(new(move.OldPosition), new(move.NewPosition), move.Transformation);
         return Move(engineMove, dry);
     }
 
     public MoveState Move(EngineMove move, bool dry = false)
     {
-        if (move == null)
-        {
-            throw new ArgumentNullException(nameof(move));
-        }
+        ArgumentNullException.ThrowIfNull(move);
         if (dry)
         {
             State.ExecuteMove(move);
@@ -119,7 +107,7 @@ public class Game
 
     public void Revert()
     {
-        if (State.Moves.Any())
+        if (State.Moves.Count != 0)
         {
             State.RevertMove();
         }
@@ -132,7 +120,7 @@ public class Game
 
     public void ObserverMoveForward()
     {
-        if (State.Moves.Any())
+        if (State.Moves.Count != 0)
         {
             if (ObserverState.CurrentMove == null)
             {
@@ -166,7 +154,7 @@ public class Game
 
     public void ObserverMoveBackward()
     {
-        if (ObserverState.Moves.Any())
+        if (ObserverState.Moves.Count != 0)
         {
             ObserverState.RevertMove();
             OnObserverMoved(EventArgs.Empty);
@@ -181,10 +169,7 @@ public class Game
 
     public void ObserverMoveTo(Move move)
     {
-        if (move == null)
-        {
-            throw new ArgumentNullException(nameof(move));
-        }
+        ArgumentNullException.ThrowIfNull(move);
         List<Move> moves;
         if (move.Variation == null)
         {
@@ -228,10 +213,7 @@ public class Game
 
     public MoveState VariationMove(Piece piece, int x, int y, PieceType? transformation)
     {
-        if (piece == null)
-        {
-            throw new ArgumentNullException(nameof(piece));
-        }
+        ArgumentNullException.ThrowIfNull(piece);
         EngineMove move = new(piece.Position, new Position(x, y), transformation);
         return VariationMove(move);
     }
@@ -246,16 +228,17 @@ public class Game
             return Move(engineMove);
         }
 
-        if (!Variations.ContainsKey(startMove))
+        if (!Variations.TryGetValue(startMove, out List<Variation>? value))
         {
-            Variations[startMove] = new List<Variation>();
+            value = new List<Variation>();
+            Variations[startMove] = value;
         }
 
         Variation moveVariation;
         if (ObserverState.CurrentMove == null || ObserverState.CurrentMove.Variation == null)
         {
             moveVariation = new Variation(startMoveId);
-            Variations[startMove].Add(moveVariation);
+            value.Add(moveVariation);
         }
         else if (ObserverState.CurrentMove == ObserverState.CurrentMove.Variation.Moves.Last())
         {
@@ -265,7 +248,7 @@ public class Game
         {
             moveVariation = new Variation(startMoveId, ObserverState.CurrentMove.Variation, ObserverState.CurrentMove.Variation.Moves.IndexOf(ObserverState.CurrentMove));
             ObserverState.CurrentMove.Variation.ChildVariations.Add(moveVariation);
-            Variations[startMove].Add(moveVariation);
+            value.Add(moveVariation);
         }
 
         var moveState = Validate.TryExecuteMove(engineMove, ObserverState);
@@ -284,10 +267,7 @@ public class Game
 
     public void CreateVariation(int startMoveId, EngineMove[] engineMoves, Evaluation? eval)
     {
-        if (engineMoves == null)
-        {
-            throw new ArgumentNullException(nameof(engineMoves));
-        }
+        ArgumentNullException.ThrowIfNull(engineMoves);
         var startMove = State.Moves[startMoveId];
         ObserverMoveTo(startMove);
         ObserverMoveBackward();
@@ -312,11 +292,11 @@ public class Game
 
         int currentMove = ObserverState.CurrentMove == null ? 0 : ObserverState.CurrentMove.HalfMoveNumber;
 
-        if (!ReviewVariations.ContainsKey(currentMove))
+        if (!ReviewVariations.TryGetValue(currentMove, out List<Variation>? value))
         {
             return new List<Variation>();
         }
-        return ReviewVariations[currentMove];
+        return value;
     }
 
 }

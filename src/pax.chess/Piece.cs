@@ -13,7 +13,8 @@ public record Piece
 
     public Piece(Piece piece)
     {
-        Type = piece?.Type ?? throw new ArgumentNullException(nameof(piece));
+        ArgumentNullException.ThrowIfNull(piece);
+        Type = piece.Type;
         IsBlack = piece.IsBlack;
         Position = new Position(piece.Position.X, piece.Position.Y);
     }

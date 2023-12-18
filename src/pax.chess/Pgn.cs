@@ -15,10 +15,7 @@ public static class Pgn
 
     public static Game MapStrings(string[] pgnLines)
     {
-        if (pgnLines == null)
-        {
-            throw new ArgumentNullException(nameof(pgnLines));
-        }
+        ArgumentNullException.ThrowIfNull(pgnLines);
         Game game = new();
         bool moveSection = false;
         StringBuilder sb = new();
@@ -38,7 +35,7 @@ public static class Pgn
                 if (pgnLines[i].StartsWith("1.", StringComparison.Ordinal))
                 {
                     moveSection = true;
-                    if (game.Infos.ContainsKey("Variant") && game.Infos["Variant"] != "Standard")
+                    if (game.Infos.TryGetValue("Variant", out string? value) && value != "Standard")
                     {
                         return game;
                     }
@@ -272,10 +269,7 @@ public static class Pgn
 
     public static string MapPieces(State state)
     {
-        if (state == null)
-        {
-            throw new ArgumentNullException(nameof(state));
-        }
+        ArgumentNullException.ThrowIfNull(state);
         StringBuilder sb = new();
         for (int i = 0; i < state.Moves.Count; i++)
         {
@@ -291,14 +285,8 @@ public static class Pgn
 
     public static string MapPiece(Move move, State state)
     {
-        if (move == null)
-        {
-            throw new ArgumentNullException(nameof(move));
-        }
-        if (state == null)
-        {
-            throw new ArgumentNullException(nameof(state));
-        }
+        ArgumentNullException.ThrowIfNull(move);
+        ArgumentNullException.ThrowIfNull(state);
         if (move.IsCastle)
         {
             if (move.OldPosition.X < move.NewPosition.X)
@@ -356,14 +344,8 @@ public static class Pgn
 
     public static string GetPgnMove(EngineMove move, State state)
     {
-        if (move == null)
-        {
-            throw new ArgumentNullException(nameof(move));
-        }
-        if (state == null)
-        {
-            throw new ArgumentNullException(nameof(state));
-        }
+        ArgumentNullException.ThrowIfNull(move);
+        ArgumentNullException.ThrowIfNull(state);
         Piece piece = state.Pieces.Single(s => s.Position == move.OldPosition);
 
         if (piece.Type == PieceType.King && Math.Abs(move.OldPosition.X - move.NewPosition.X) > 1)

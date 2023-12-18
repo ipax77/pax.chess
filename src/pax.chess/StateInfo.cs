@@ -15,7 +15,8 @@ public sealed record StateInfo
     public StateInfo() { }
     public StateInfo(StateInfo info)
     {
-        BlackToMove = info?.BlackToMove ?? throw new ArgumentNullException(nameof(info));
+        ArgumentNullException.ThrowIfNull(info);
+        BlackToMove = info.BlackToMove;
         WhiteCanCastleKingSide = info.WhiteCanCastleKingSide;
         WhiteCanCastleQueenSide = info.WhiteCanCastleQueenSide;
         BlackCanCastleKingSide = info.BlackCanCastleKingSide;
@@ -28,7 +29,8 @@ public sealed record StateInfo
 
     public void Set(StateInfo info)
     {
-        BlackToMove = info?.BlackToMove ?? throw new ArgumentNullException(nameof(info));
+        ArgumentNullException.ThrowIfNull(info);
+        BlackToMove = info.BlackToMove;
         WhiteCanCastleKingSide = info.WhiteCanCastleKingSide;
         WhiteCanCastleQueenSide = info.WhiteCanCastleQueenSide;
         BlackCanCastleKingSide = info.BlackCanCastleKingSide;

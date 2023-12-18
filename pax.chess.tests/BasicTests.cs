@@ -1,3 +1,4 @@
+using System.Linq;
 using Xunit;
 
 namespace pax.chess.tests
@@ -100,12 +101,45 @@ namespace pax.chess.tests
         }
 
         [Fact]
-        public void Fen()
+        public void Fen_Checkmate()
         {
             string fen = "2r3k1/6pp/p3pp1B/2bn4/2pK3P/3b1PR1/P7/3R4 w - - 2 31";
             Game game = new Game(fen);
             Assert.True(game.State.Info.IsCheckMate);
         }
 
+        [Fact]
+        public void Fen_FindPiece()
+        {
+            string fen = "rnbqkbnr/pp2pppp/3p4/2p5/8/1P3P2/P1PPP1PP/RNBQKBNR w KQkq c5 0 2";
+            Game game = new Game(fen);
+            var pawn = game.State.Pieces.FirstOrDefault(p => p.IsBlack && p.Position == new Position(2, 4));
+            Assert.NotNull(pawn);
+        }
+
+        [Fact]
+        public void Fen_NotCheckmate()
+        {
+            string fen = "rnbqkbnr/pp2pppp/3p4/2p5/8/1P3P2/P1PPP1PP/RNBQKBNR w KQkq - 0 2";
+            Game game = new Game(fen);
+            Assert.False(game.State.Info.IsCheckMate);
+        }
+
+        [Fact]
+        public void Fen_InitialPosition()
+        {
+            string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+            Game game = new Game(fen);
+            Assert.Equal(32, game.State.Pieces.Count);
+        }
+
+        [Fact]
+        public void Fen_EnPassant()
+        {
+            string fen = "rnbqkb1r/p2p1ppp/2P2n2/4p3/Pp2P3/5N2/1PP2PPP/RNBQKB1R b KQkq a3 0 6";
+            Game game = new Game(fen);
+            var pawn = game.State.Pieces.FirstOrDefault(p => !p.IsBlack && p.Position == new Position(0, 3));
+            Assert.NotNull(pawn);
+        }
     }
 }
