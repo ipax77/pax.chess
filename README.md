@@ -13,6 +13,9 @@ You can install it with the Package Manager in your IDE or alternatively using t
 dotnet add package pax.chess
 ```
 ## Usage
+
+Sample Project: [pax.BlazorChess](https://github.com/ipax77/pax.BlazorChess)
+
 ```csharp
 Game game = new Game();
 EngineMove move = new EngineMove(new Position(4, 2), new Position(5, 3));

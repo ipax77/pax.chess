@@ -13,7 +13,7 @@
     <Owners>Philipp Hetzner</Owners>
     <Authors>Philipp Hetzner</Authors>
     <Version>0.6.2</Version>
-	<FileVersion>0.6.2.0</FileVersion>
+  	<FileVersion>0.6.2.0</FileVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
