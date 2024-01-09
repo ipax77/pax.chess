@@ -2,17 +2,17 @@
 
 public static partial class Validate
 {
-    private static readonly int[][] KnightDeltas = new int[8][]
-    {
-        new int[2] {2, 1},
-        new int[2] {2, -1},
-        new int[2] {-2, 1},
-        new int[2] {-2, -1},
-        new int[2] {1, 2},
-        new int[2] {1, -2},
-        new int[2] {-1, 2},
-        new int[2] {-1, -2}
-    };
+    private static readonly int[][] KnightDeltas =
+    [
+        [2, 1],
+        [2, -1],
+        [-2, 1],
+        [-2, -1],
+        [1, 2],
+        [1, -2],
+        [-1, 2],
+        [-1, -2]
+    ];
 
     private static List<Position> GetKnightMoves(Piece piece, List<Piece> pieces)
     {
@@ -37,6 +37,31 @@ public static partial class Validate
                 }
             }
         }
+        return moves;
+    }
+
+    private static List<Position> GetPossibleKnightMoves(Piece piece, ChessBoard chessBoard)
+    {
+        var moves = new List<Position>();
+
+        foreach (var delta in KnightDeltas)
+        {
+            int deltaX = delta[0];
+            int deltaY = delta[1];
+
+            var pos = new Position(piece.Position.X + deltaX, piece.Position.Y + deltaY);
+
+            if (!pos.OutOfBounds)
+            {
+                var occupied = chessBoard.GetPieceAt(pos);
+
+                if (occupied == null || occupied.IsBlack != piece.IsBlack)
+                {
+                    moves.Add(pos);
+                }
+            }
+        }
+
         return moves;
     }
 }

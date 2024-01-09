@@ -1,13 +1,13 @@
 ﻿namespace pax.chess.Validation;
 public static partial class Validate
 {
-    private static readonly int[][] BishopDeltas = new int[4][]
-    {
-        new int[2] { 1, 1 },
-        new int[2] { 1, -1 },
-        new int[2] { -1, 1 },
-        new int[2] { -1, -1 }
-    };
+    private static readonly int[][] BishopDeltas =
+    [
+        [1, 1],
+        [1, -1],
+        [-1, 1],
+        [-1, -1]
+    ];
 
     private static List<Position> GetBishopMoves(Piece piece, List<Piece> pieces)
     {
@@ -31,6 +31,36 @@ public static partial class Validate
                 pos = new Position(pos.X + BishopDeltas[i][0], pos.Y + BishopDeltas[i][1]);
             }
         }
+        return moves;
+    }
+
+    private static List<Position> GetPossibleBishopMoves(Piece piece, ChessBoard chessBoard)
+    {
+        var moves = new List<Position>();
+
+        foreach (var delta in BishopDeltas)
+        {
+            int deltaX = delta[0];
+            int deltaY = delta[1];
+
+            var pos = new Position(piece.Position.X + deltaX, piece.Position.Y + deltaY);
+
+            while (!pos.OutOfBounds)
+            {
+                var occupied = chessBoard.GetPieceAt(pos);
+                if (occupied != null)
+                {
+                    if (occupied.IsBlack != piece.IsBlack)
+                    {
+                        moves.Add(pos);
+                    }
+                    break;
+                }
+                moves.Add(pos);
+                pos = new Position(pos.X + deltaX, pos.Y + deltaY);
+            }
+        }
+
         return moves;
     }
 }

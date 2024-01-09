@@ -3,11 +3,18 @@ public sealed record Position
 {
     public byte X { get; set; }
     public byte Y { get; set; }
+
+    public Position()
+    {
+
+    }
+
     public Position(byte x, byte y)
     {
         X = x;
         Y = y;
     }
+
     public Position(int x, int y)
     {
         X = (byte)x;
@@ -19,6 +26,8 @@ public sealed record Position
         this.X = position?.X ?? throw new ArgumentNullException(nameof(position));
         this.Y = position.Y;
     }
+
+    public int Index() => (int)Y * 8 + (int)X;
 
     public bool OutOfBounds => X < 0 || X > 7 || Y < 0 || Y > 7;
 }

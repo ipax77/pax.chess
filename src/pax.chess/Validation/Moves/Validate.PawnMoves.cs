@@ -61,4 +61,72 @@ public static partial class Validate
 
         return moves;
     }
+
+    private static List<Position> GetPossiblePawnMoves(Piece piece, ChessBoard chessBoard)
+    {
+        int delta = piece.IsBlack ? -1 : 1;
+        var moves = new List<Position>();
+
+        AddForwardMove(piece, delta, moves, chessBoard);
+
+        if (IsStartingPosition(piece))
+        {
+            AddDoubleForwardMove(piece, delta, moves, chessBoard);
+        }
+
+        AddCaptureMove(piece, delta, 1, moves, chessBoard);
+        AddCaptureMove(piece, delta, -1, moves, chessBoard);
+
+        return moves;
+    }
+
+    private static void AddForwardMove(Piece piece, int delta, List<Position> moves, ChessBoard chessBoard)
+    {
+        var pos = new Position(piece.Position.X, piece.Position.Y + delta);
+
+        if (!pos.OutOfBounds && chessBoard.GetPieceAt(pos) == null)
+        {
+            moves.Add(pos);
+        }
+    }
+
+    private static void AddDoubleForwardMove(Piece piece, int delta, List<Position> moves, ChessBoard chessBoard)
+    {
+        var pos = new Position(piece.Position.X, piece.Position.Y + (2 * delta));
+
+        if (!pos.OutOfBounds && chessBoard.GetPieceAt(pos) == null)
+        {
+            moves.Add(pos);
+        }
+    }
+
+    private static void AddCaptureMove(Piece piece, int delta, int offset, List<Position> moves, ChessBoard chessBoard)
+    {
+        var capPos = new Position(piece.Position.X + offset, piece.Position.Y + delta);
+
+        if (!capPos.OutOfBounds)
+        {
+            if (IsEnPassantCapture(capPos, chessBoard) || IsNormalCapture(capPos, piece, chessBoard))
+            {
+                moves.Add(capPos);
+            }
+        }
+    }
+
+    private static bool IsStartingPosition(Piece piece)
+    {
+        return (piece.IsBlack && piece.Position.Y == 6) || (!piece.IsBlack && piece.Position.Y == 1);
+    }
+
+    private static bool IsEnPassantCapture(Position capPos, ChessBoard chessBoard)
+    {
+        return chessBoard.EnPassantPosition == capPos;
+    }
+
+    private static bool IsNormalCapture(Position capPos, Piece piece, ChessBoard chessBoard)
+    {
+        var enemy = chessBoard.GetPieceAt(capPos);
+
+        return enemy != null && enemy.IsBlack != piece.IsBlack;
+    }
 }

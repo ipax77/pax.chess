@@ -28,6 +28,7 @@ public enum Variant
 public enum MoveState
 {
     Ok,
+    OutOfBounds,
     PieceNotFound,
     WrongColor,
     TargetInvalid,

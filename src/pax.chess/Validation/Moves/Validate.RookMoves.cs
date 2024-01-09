@@ -1,13 +1,13 @@
 ﻿namespace pax.chess.Validation;
 public static partial class Validate
 {
-    private static readonly int[][] RookDeltas = new int[4][]
-    {
-        new int[2] { 0, 1 },
-        new int[2] { 0, -1 },
-        new int[2] { 1, 0 },
-        new int[2] { -1, 0 }
-    };
+    private static readonly int[][] RookDeltas =
+    [
+        [0, 1],
+        [0, -1],
+        [1, 0],
+        [-1, 0]
+    ];
 
     private static List<Position> GetRookMoves(Piece piece, List<Piece> pieces)
     {
@@ -31,6 +31,38 @@ public static partial class Validate
                 pos = new Position(pos.X + RookDeltas[i][0], pos.Y + RookDeltas[i][1]);
             }
         }
+        return moves;
+    }
+
+    private static List<Position> GetPossibleRookMoves(Piece piece, ChessBoard chessBoard)
+    {
+        var moves = new List<Position>();
+
+        foreach (var delta in RookDeltas)
+        {
+            int deltaX = delta[0];
+            int deltaY = delta[1];
+
+            var pos = new Position(piece.Position.X + deltaX, piece.Position.Y + deltaY);
+
+            while (!pos.OutOfBounds)
+            {
+                var occupied = chessBoard.GetPieceAt(pos);
+
+                if (occupied != null)
+                {
+                    if (occupied.IsBlack != piece.IsBlack)
+                    {
+                        moves.Add(pos);
+                    }
+                    break;
+                }
+
+                moves.Add(pos);
+                pos = new Position(pos.X + deltaX, pos.Y + deltaY);
+            }
+        }
+
         return moves;
     }
 }

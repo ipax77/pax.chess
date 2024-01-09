@@ -25,4 +25,34 @@ public static partial class Validate
         }
         return moves;
     }
+
+    private static List<Position> GetPossibleQueenMoves(Piece piece, ChessBoard chessBoard)
+    {
+        var moves = new List<Position>();
+
+        foreach (var delta in KingDeltas)
+        {
+            int deltaX = delta[0];
+            int deltaY = delta[1];
+
+            var pos = new Position(piece.Position.X + deltaX, piece.Position.Y + deltaY);
+
+            while (!pos.OutOfBounds)
+            {
+                var occupied = chessBoard.GetPieceAt(pos);
+                if (occupied != null)
+                {
+                    if (occupied.IsBlack != piece.IsBlack)
+                    {
+                        moves.Add(pos);
+                    }
+                    break;
+                }
+                moves.Add(pos);
+                pos = new Position(pos.X + deltaX, pos.Y + deltaY);
+            }
+        }
+
+        return moves;
+    }
 }

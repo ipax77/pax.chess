@@ -1,19 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Description>C# dotnet 6 chess library with pgn/fen import/export and move validation.</Description>
+    <Description>C# dotnet 8 chess library with pgn/fen import/export and move validation.</Description>
     <PackageProjectUrl>https://github.com/ipax77/pax.chess</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/ipax77/pax.chess</RepositoryUrl>
     <PackageTags>chess;library;fen;pgn;move validation</PackageTags>
-    <AssemblyVersion>0.6.2.0</AssemblyVersion>
+    <AssemblyVersion>0.8.0.0</AssemblyVersion>
     <Owners>Philipp Hetzner</Owners>
     <Authors>Philipp Hetzner</Authors>
-    <Version>0.6.2</Version>
-  	<FileVersion>0.6.2.0</FileVersion>
+    <Version>0.8.8</Version>
+  	<FileVersion>0.8.0.0</FileVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
