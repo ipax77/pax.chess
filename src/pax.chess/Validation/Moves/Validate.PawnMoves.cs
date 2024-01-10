@@ -92,11 +92,13 @@ public static partial class Validate
 
     private static void AddDoubleForwardMove(Piece piece, int delta, List<Position> moves, ChessBoard chessBoard)
     {
-        var pos = new Position(piece.Position.X, piece.Position.Y + (2 * delta));
+        var pos1 = new Position(piece.Position.X, piece.Position.Y + (2 * delta));
+        var pos2 = new Position(piece.Position.X, piece.Position.Y + delta);
 
-        if (!pos.OutOfBounds && chessBoard.GetPieceAt(pos) == null)
+        if (!pos1.OutOfBounds && chessBoard.GetPieceAt(pos1) == null
+            && chessBoard.GetPieceAt(pos2) == null)
         {
-            moves.Add(pos);
+            moves.Add(pos1);
         }
     }
 

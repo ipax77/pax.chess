@@ -13,7 +13,7 @@ public class ChessGame
     /// <summary>
     /// Unique ChessGame Id
     /// </summary>
-    public Guid Id { get; } 
+    public Guid Id { get; }
 
     public ChessBoard ChessBoard { get; private set; }
 }
@@ -33,12 +33,67 @@ public record ChessBoard
     public bool IsCheck { get; private set; }
     public bool IsCheckMate { get; private set; }
     public int HalfMove { get; private set; }
+    public Result Result { get; set; }
 
     public ChessBoard(string fen)
     {
         SetFen(fen);
         IsCheck = Validate.IsCheck(this);
         IsCheckMate = Validate.IsCheckMate(this);
+    }
+
+    public static ChessBoard FromPgn(string pgn)
+    {
+        ChessBoard board = new();
+
+        var pgnMoves = PgnParser.GetPgnMoves(pgn);
+
+        if (pgnMoves.Count == 0)
+        {
+            return board;
+        }
+
+        board.Result = pgnMoves[0].Result;
+
+        for (int i = 1; i < pgnMoves.Count; i++)
+        {
+            var move = pgnMoves[i];
+            ArgumentNullException.ThrowIfNull(move.ToPosition, $"To position not found at pgn move {move.MoveNumber}");
+
+            Position fromPosition;
+            if (move.ToPosition == Position.Unknown)
+            {
+                if (move.IsCastleKingSide)
+                {
+                    move = move with { ToPosition = new(6, board.BlackToMove ? 7 : 0) };
+                }
+                else if (move.IsCastleQueenSide)
+                {
+                    move = move with { ToPosition = new(2, board.BlackToMove ? 7 : 0) };
+                }
+                else
+                {
+                    throw new MoveException($"pgn move to position not found: {move.MoveNumber}: {move.PieceType}");
+                }
+                fromPosition = new(4, board.BlackToMove ? 7 : 0);
+            }
+            else
+            {
+                fromPosition = Validate.GetFromPosition(board, move, move.ToPosition);
+            }
+
+            if (fromPosition == Position.Unknown)
+            {
+                throw new MoveException($"pgn move from position not found: {move.MoveNumber}: {move.PieceType} to {move.ToPosition}");
+            }
+
+            var result = board.Move(fromPosition, move.ToPosition, move.Transformation);
+            if (result != MoveState.Ok)
+            {
+                throw new MoveException($"pgn move failed at {move.MoveNumber}: {move.PieceType} from {fromPosition.ToAlgebraicNotation()} to {move.ToPosition.ToAlgebraicNotation()}");
+            }
+        }
+        return board;
     }
 
     public ChessBoard()
@@ -186,7 +241,29 @@ public record ChessBoard
         Pieces[from.Index()] = null;
         Pieces[to.Index()] = pieceToMove;
         pieceToMove.Position = to;
-        
+
+        // castle
+        if (pieceToMove.Type == PieceType.King && Math.Abs(from.X - to.X) > 1)
+        {
+            Position rookFrom;
+            Position rookTo;
+            if (from.X - to.X < 0)
+            {
+                rookFrom = BlackToMove ? new(7, 7) : new(7, 0);
+                rookTo = BlackToMove ? new(5, 7) : new(5, 0);
+            }
+            else
+            {
+                rookFrom = BlackToMove ? new(0, 7) : new(0, 0);
+                rookTo = BlackToMove ? new(3, 7) : new(3, 0);
+            }
+            var rook = GetPieceAt(rookFrom);
+            ArgumentNullException.ThrowIfNull(rook);
+            Pieces[rookFrom.Index()] = null;
+            Pieces[rookTo.Index()] = rook;
+            rook.Position = rookTo;
+        }
+
         BlackToMove = !BlackToMove;
         HalfMove++;
 
@@ -198,7 +275,7 @@ public record ChessBoard
             HalfMove = HalfMove,
             PawnHalfMoveClock = halfMoveClock,
             PieceType = isPromotion ? PieceType.Pawn : pieceToMove.Type,
-            FromPosition = from, 
+            FromPosition = from,
             ToPosition = to,
             EnPassantCapture = isEnPassantCapture,
             EnPassantPawnMove = isEnPassantMove,
@@ -276,7 +353,7 @@ public record ChessBoard
             return false;
         }
 
-        if ((pieceToMove.IsBlack && to.Y != 0) 
+        if ((pieceToMove.IsBlack && to.Y != 0)
             || (!pieceToMove.IsBlack && to.Y != 7))
         {
             return false;
@@ -392,7 +469,7 @@ public record ChessBoard
 
         var otherPieces = Pieces
             .OfType<Piece>()
-            .Where(x => x.IsBlack == pieceToMove.IsBlack 
+            .Where(x => x.IsBlack == pieceToMove.IsBlack
                 && x.Type == pieceToMove.Type
                 && x != pieceToMove)
             .ToList();
@@ -429,6 +506,15 @@ public record ChessBoard
             }
             Console.WriteLine();
         }
+    }
+    public string GetPgn()
+    {
+        return PgnParser.MovesToPgn(Moves.ToList());
+    }
+
+    public string GetFen()
+    {
+        throw new NotImplementedException();
     }
 
     private static char GetPieceSymbol(Piece piece)

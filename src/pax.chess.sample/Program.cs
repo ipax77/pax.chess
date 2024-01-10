@@ -4,20 +4,20 @@
     {
         static void Main(string[] args)
         {
-            ChessBoard board = new();
+            //ChessBoard board = new();
 
-            board.Move(new("e2"), new("e4"));
-            board.Move(new("a7"), new("a6"));
-            board.Move(new("e4"), new("e5"));
-            board.Move(new("d7"), new("d5"));
-            board.Move(new("e5"), new("d6"));
-            board.Move(new("b8"), new("c6"));
+            //board.Move(new("e2"), new("e4"));
+            //board.Move(new("a7"), new("a6"));
+            //board.Move(new("e4"), new("e5"));
+            //board.Move(new("d7"), new("d5"));
+            //board.Move(new("e5"), new("d6"));
+            //board.Move(new("b8"), new("c6"));
 
-            board.DisplayBoard();
+            //board.DisplayBoard();
 
-            var pgn = PgnParser.MovesToPgn(board.Moves.ToList());
+            //var pgn = PgnParser.MovesToPgn(board.Moves.ToList());
 
-            Console.WriteLine(pgn);
+            //Console.WriteLine(pgn);
 
             var lichesspgn = @"[Event ""Rated Blitz game""]
 [Site ""https://lichess.org/ZpHJD9nv""]
@@ -65,7 +65,14 @@ R6e5 Rxa3 47. Re7+ Kf6 48. R7e6+ Kg5 49. Rg3+ Rg4 50. Rd3 Ra6+ 51. Ke7 Rxe6+ 52.
 Kxe6 Re4+ 53. Kd5 h4 54. c4 Rxc4 55. Kxc4 Kg4 56. Kd4 h3 57. Ke3 h2 58. Rd1 Kg3
 59. Ke2 Kg2 60. Ke3 h1=Q 61. Rd2+ Kg3 62. Kd4 Qe4+ 63. Kc5 Qe3+ 0-1";
 
-            var moves = PgnParser.GetMoves(chesscompgn);
+            var moves = PgnParser.GetPgnMoves(lichesspgn);
+
+            var pgnBoard = ChessBoard.FromPgn(lichesspgn);
+
+            var pgn1 = pgnBoard.GetPgn();
+
+            pgnBoard.DisplayBoard();
+            Console.WriteLine(pgn1);
         }
     }
 }

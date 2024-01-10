@@ -78,5 +78,5 @@ public sealed record Position
 
     public bool OutOfBounds => X < 0 || X > 7 || Y < 0 || Y > 7;
 
-    public static readonly Position Zero = new(0, 0);
+    public static readonly Position Unknown = new(byte.MaxValue, byte.MaxValue);
 }

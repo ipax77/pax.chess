@@ -2,6 +2,47 @@
 
 public static partial class Validate
 {
+    public static Position GetFromPosition(ChessBoard board, PgnMove pgnMove, Position toPosition)
+    {
+        if (pgnMove.IsCastleKingSide || pgnMove.IsCastleQueenSide)
+        {
+            return board.BlackToMove ? new(4, 7) : new(4, 0);
+        }
+
+        var possiblePieces = board.Pieces
+            .OfType<Piece>()
+            .Where(x => x.IsBlack == board.BlackToMove
+                && x.Type == pgnMove.PieceType
+                && (pgnMove.FromX == 0 || x.Position.X == pgnMove.FromX - 1)
+                && (pgnMove.FromY == 0 || x.Position.Y == pgnMove.FromY - 1))
+            .ToList();
+
+        if (possiblePieces.Count == 0 )
+        {
+            return Position.Unknown;
+        }
+
+        if (possiblePieces.Count == 1)
+        {
+            return possiblePieces[0].Position;
+        }
+
+
+
+        List<List<Position>> list = new List<List<Position>>();
+        foreach (var piece in possiblePieces) 
+        {
+            var possibleMoves = GetMoves(piece, board);
+            list.Add(possibleMoves);
+            if (possibleMoves.Contains(toPosition))
+            {
+                return piece.Position;
+            }
+        }
+
+        return Position.Unknown;
+    }
+
     public static bool IsNotUniqueMove(ChessBoard board, Position to, List<Piece> otherPieces)
     {
         return otherPieces.Any(a =>
@@ -118,7 +159,7 @@ public static partial class Validate
     public static bool WouldBeCheck(ChessBoard chessBoard,
                                     Position from,
                                     Position to,
-                                    PieceType? transformation = null)
+                                    PieceType transformation = PieceType.Queen)
     {
         ArgumentNullException.ThrowIfNull(chessBoard);
         ArgumentNullException.ThrowIfNull(from);
@@ -148,8 +189,7 @@ public static partial class Validate
         if (pieceToMove.Type == PieceType.Pawn
             && (pieceToMove.IsBlack && to.Y == 0 || !pieceToMove.IsBlack && to.Y == 7))
         {
-            ArgumentNullException.ThrowIfNull(transformation);
-            pieceToMove.Type = transformation.Value;
+            pieceToMove.Type = transformation;
         }
         // enpassant
         else if (pieceToMove.Type == PieceType.Pawn
