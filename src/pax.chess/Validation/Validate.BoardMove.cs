@@ -2,6 +2,15 @@
 
 public static partial class Validate
 {
+    public static bool IsNotUniqueMove(ChessBoard board, Position to, List<Piece> otherPieces)
+    {
+        return otherPieces.Any(a =>
+        {
+            var validMoves = GetMoves(a, board);
+            return validMoves.Contains(to);
+        });
+    }
+
     public static MoveState ValidateBoardMove(ChessBoard chessBoard,
                                          Position from,
                                          Position to,
