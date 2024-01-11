@@ -18,4 +18,18 @@ public record Piece
         IsBlack = piece.IsBlack;
         Position = new Position(piece.Position.X, piece.Position.Y);
     }
+
+    public string Notation()
+    {
+        return Type switch
+        {
+            PieceType.Pawn => "P",
+            PieceType.Queen => "Q",
+            PieceType.King => "K",
+            PieceType.Rook => "R",
+            PieceType.Bishop => "B",
+            PieceType.Knight => "N",
+            _ => string.Empty
+        };
+    }
 }
