@@ -73,6 +73,8 @@ Kxe6 Re4+ 53. Kd5 h4 54. c4 Rxc4 55. Kxc4 Kg4 56. Kd4 h3 57. Ke3 h2 58. Rd1 Kg3
 
             pgnBoard.DisplayBoard();
             Console.WriteLine(pgn1);
+
+            Console.WriteLine(pgnBoard.GetFen());
         }
     }
 }

@@ -52,6 +52,53 @@ public static partial class Validate
         });
     }
 
+    public static string GetPgnFromNotation(ChessBoard board,
+                                         Piece pieceToMove,
+                                         Position to,
+                                         List<Piece> otherPieces)
+    {
+        var otherPossiblePieces = otherPieces
+            .Where(x =>
+            {
+                var validMoves = GetMoves(x, board);
+                return validMoves.Contains(to);
+            }).ToList();
+
+        if (otherPossiblePieces.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        bool sameRank = false;
+        bool sameFile = false;
+
+        foreach (var piece in otherPossiblePieces)
+        {
+            if (pieceToMove.Position.Y == piece.Position.Y)
+            {
+                sameRank = true;
+            }
+
+            if (pieceToMove.Position.X == piece.Position.X)
+            {
+                sameFile = true;
+            }
+
+            if (sameRank && sameFile)
+            {
+                return pieceToMove.Position.ToAlgebraicNotation();
+            }
+        }
+
+        return (sameRank, sameFile) switch
+        {
+            (false, false) => pieceToMove.Position.ToAlgebraicNotation()[0].ToString(),
+            (true, false) => pieceToMove.Position.ToAlgebraicNotation()[0].ToString(),
+            (false, true) => pieceToMove.Position.ToAlgebraicNotation()[1].ToString(),
+            _ => pieceToMove.Position.ToAlgebraicNotation()
+        };
+    }
+
     public static MoveState ValidateBoardMove(ChessBoard chessBoard,
                                          Position from,
                                          Position to,
@@ -186,13 +233,13 @@ public static partial class Validate
         pieces[to.Index()] = pieceToMove with { Position = to };
 
         // promotion
-        if (pieceToMove.Type == PieceType.Pawn
-            && (pieceToMove.IsBlack && to.Y == 0 || !pieceToMove.IsBlack && to.Y == 7))
-        {
-            pieceToMove.Type = transformation;
-        }
+        //if (pieceToMove.Type == PieceType.Pawn
+        //    && (pieceToMove.IsBlack && to.Y == 0 || !pieceToMove.IsBlack && to.Y == 7))
+        //{
+        //    pieceToMove.Type = transformation;
+        //}
         // enpassant
-        else if (pieceToMove.Type == PieceType.Pawn
+        if (pieceToMove.Type == PieceType.Pawn
             && chessBoard.EnPassantPosition is not null
             && from.X != to.X && capture is null)
         {

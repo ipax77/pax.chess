@@ -1,4 +1,6 @@
 ﻿using pax.chess.Validation;
+using System.Globalization;
+using System.Text;
 
 namespace pax.chess;
 
@@ -33,6 +35,7 @@ public record ChessBoard
     public bool IsCheck { get; private set; }
     public bool IsCheckMate { get; private set; }
     public int HalfMove { get; private set; }
+    public int MoveNumber { get; private set; } = 1;
     public Result Result { get; set; }
 
     public ChessBoard(string fen)
@@ -85,6 +88,11 @@ public record ChessBoard
             if (fromPosition == Position.Unknown)
             {
                 throw new MoveException($"pgn move from position not found: {move.MoveNumber}: {move.PieceType} to {move.ToPosition}");
+            }
+
+            if (move.Transformation != PieceType.None)
+            {
+                Console.Write("indahouse");
             }
 
             var result = board.Move(fromPosition, move.ToPosition, move.Transformation);
@@ -170,6 +178,11 @@ public record ChessBoard
             throw new ArgumentOutOfRangeException($"invalid pawn half moves: {gameInfos[4]}");
         }
 
+        if (int.TryParse(gameInfos[5], out int moves))
+        {
+            MoveNumber = moves;
+        }
+
         for (int y = 0; y < fenInfos.Length; y++)
         {
             int x = 0;
@@ -236,7 +249,7 @@ public record ChessBoard
         SetHalfMoveClock(pieceToMove, capture);
         (var isEnPassantMove, var isEnPassantCapture) = HandleEnPassant(pieceToMove, capture, to);
         var isPromotion = HandlePromotion(pieceToMove, to, transformation);
-        var isNotUnique = IsNotUniquePgnMove(pieceToMove, to);
+        var pgnFromNotation = GetPgnNotation(pieceToMove, to);
 
         Pieces[from.Index()] = null;
         Pieces[to.Index()] = pieceToMove;
@@ -266,6 +279,10 @@ public record ChessBoard
 
         BlackToMove = !BlackToMove;
         HalfMove++;
+        if (!BlackToMove)
+        {
+            MoveNumber++;
+        }
 
         IsCheck = Validate.IsCheck(this);
         IsCheckMate = Validate.IsCheckMate(this);
@@ -283,7 +300,7 @@ public record ChessBoard
             IsCheckMate = IsCheckMate,
             Capture = isEnPassantCapture ? PieceType.Pawn :
                 capture == null ? PieceType.None : capture.Type,
-            IsNotUnique = isNotUnique,
+            PgnFromNotation = pgnFromNotation,
             CanCasteKingSide = canCastleKingSide,
             CanCasteQueenSide = canCastleQueenSide,
             Transformation = transformation
@@ -337,6 +354,10 @@ public record ChessBoard
         PawnHalfMoveClock = move.PawnHalfMoveClock;
         HalfMove--;
         BlackToMove = !BlackToMove;
+        if (BlackToMove)
+        {
+            MoveNumber--;
+        }
 
         IsCheck = Validate.IsCheck(this);
         IsCheckMate = false;
@@ -482,6 +503,30 @@ public record ChessBoard
         return Validate.IsNotUniqueMove(this, to, otherPieces);
     }
 
+    private string GetPgnNotation(Piece pieceToMove, Position to)
+    {
+        if (pieceToMove.Type == PieceType.Pawn)
+        {
+            return string.Empty;
+        }
+
+        var otherPieces = pieceToMove.Type == PieceType.King ? [] :
+                Pieces.OfType<Piece>()
+                    .Where(x => x.IsBlack == pieceToMove.IsBlack
+                        && x.Type == pieceToMove.Type
+                        && x != pieceToMove)
+                    .ToList();
+
+        if (otherPieces.Count == 0)
+        {
+            return string.Empty;
+        }
+        else
+        {
+            return Validate.GetPgnFromNotation(this, pieceToMove, to, otherPieces);
+        }
+    }
+
     public void DisplayBoard()
     {
         Console.WriteLine("  a b c d e f g h");
@@ -514,7 +559,99 @@ public record ChessBoard
 
     public string GetFen()
     {
-        throw new NotImplementedException();
+        StringBuilder sb = new();
+        for (int y = 0; y < 8; y++)
+        {
+            int c = 0;
+            for (int x = 0; x < 8; x++)
+            {
+                Piece? piece = Pieces
+                    .OfType<Piece>()
+                    .FirstOrDefault(f => f.Position.X == x && f.Position.Y == 7 - y);
+
+                if (piece != null)
+                {
+                    if (c > 0)
+                    {
+                        sb.Append(c);
+                    }
+                    string pieceString = Map.GetPieceString(piece.Type);
+                    sb.Append(!piece.IsBlack ? pieceString.ToUpper(CultureInfo.InvariantCulture) : pieceString);
+                    c = 0;
+                }
+                else
+                {
+                    c++;
+                }
+            }
+            if (c > 0)
+            {
+                sb.Append(c);
+            }
+            sb.Append('/');
+        }
+        sb.Length--;
+        sb.Append(' ');
+
+        if (BlackToMove)
+        {
+            sb.Append('b');
+        }
+        else
+        {
+            sb.Append('w');
+        }
+        sb.Append(' ');
+
+        if
+        (
+            !WhiteCanCastleKingSide
+         && !WhiteCanCastleQueenSide
+         && !BlackCanCastleKingSide
+         && !BlackCanCastleQueenSide
+
+        )
+        {
+            sb.Append('-');
+        }
+        else
+        {
+            if (WhiteCanCastleKingSide)
+            {
+                sb.Append('K');
+            }
+            if (WhiteCanCastleQueenSide)
+            {
+                sb.Append('Q');
+            }
+            if (BlackCanCastleKingSide)
+            {
+                sb.Append('k');
+            }
+            if (BlackCanCastleQueenSide)
+            {
+                sb.Append('q');
+            }
+        }
+
+        sb.Append(' ');
+        if (EnPassantPosition != null)
+        {
+            char x = Map.GetCharColumn(EnPassantPosition.X);
+            var y = EnPassantPosition.Y.ToString(CultureInfo.InvariantCulture);
+            sb.Append(x);
+            sb.Append(y);
+        }
+        else
+        {
+            sb.Append('-');
+        }
+        sb.Append(' ');
+        sb.Append(PawnHalfMoveClock);
+        sb.Append(' ');
+        sb.Append(MoveNumber);
+
+        return sb.ToString();
     }
 
     private static char GetPieceSymbol(Piece piece)

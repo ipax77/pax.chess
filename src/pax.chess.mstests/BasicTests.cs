@@ -245,54 +245,6 @@ namespace pax.chess.mstests
         }
 
         [TestMethod]
-        public void NotUniqueMoveTest1()
-        {
-            // Arrange
-            ChessBoard board = new("r1bq1rk1/ppppbppp/2n2n2/4p3/4P3/2P5/PPNPNPPP/R1BQKB1R w KQ - 3 6");
-
-            // Act
-            var result = board.Move(new(2, 1), new(3, 3));
-            var move = board.Moves.LastOrDefault();
-
-            // Assert
-            Assert.AreEqual(MoveState.Ok, result);
-            Assert.IsNotNull(move);
-            Assert.IsTrue(move.IsNotUnique);
-        }
-
-        [TestMethod]
-        public void NotUniqueMoveTest2()
-        {
-            // Arrange
-            ChessBoard board = new("rn1qkbnr/pppbpppp/8/3p4/2P1P3/8/PP1P1PPP/RNBQKBNR w KQkq - 1 3");
-
-            // Act
-            var result = board.Move(new(2, 3), new(3, 4));
-            var move = board.Moves.LastOrDefault();
-
-            // Assert
-            Assert.AreEqual(MoveState.Ok, result);
-            Assert.IsNotNull(move);
-            Assert.IsTrue(move.IsNotUnique);
-        }
-
-        [TestMethod]
-        public void UniqueMoveTest()
-        {
-            // Arrange
-            ChessBoard board = new("1k4q1/8/8/8/6P1/8/6q1/1K6 b - - 0 1");
-
-            // Act
-            var result = board.Move(new(6, 7), new(6, 5));
-            var move = board.Moves.LastOrDefault();
-
-            // Assert
-            Assert.AreEqual(MoveState.Ok, result);
-            Assert.IsNotNull(move);
-            Assert.IsFalse(move.IsNotUnique);
-        }
-
-        [TestMethod]
         public void RevertMoveTest()
         {
             // Arrange
@@ -323,6 +275,34 @@ namespace pax.chess.mstests
 
             board1.RevertMove();
             Assert.IsTrue(board1.Pieces.SequenceEqual(board2.Pieces));
+        }
+
+        [DataTestMethod]
+        [DataRow("1k6/8/8/8/8/8/PPP5/1K3r2 w - - 0 1")]
+        [DataRow("r1b2q2/3k1p2/pP2p3/3pB1Q1/B2P4/P3P3/5PPP/1R3K2 b - - 0 29")]
+        [DataRow("kbK5/pP6/p7/8/8/8/8/8 b - - 0 2")]
+        [DataRow("r1bqkb1r/pppp1Qpp/2n2n2/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4")]
+        public void FenTests(string fen)
+        {
+            // Arrange
+            ChessBoard board = new ChessBoard(fen);
+
+            var boardFen = board.GetFen();
+            Assert.AreEqual(fen, boardFen);
+        }
+
+        [DataTestMethod]
+        [DataRow("1. e4 e5 2. Ne2 Nf6 3. f4 Nxe4 4. d3 Nd6 5. fxe5 Nf5")]
+        [DataRow("1. d4 e6 2. c4 Nf6 3. Nc3 d5 4. Nf3")]
+        [DataRow("1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. Nc3 Nf6 5. O-O O-O 6. d3 d6 7. Bg5 h6 8. Bh4")]
+        [DataRow("1. e4 a6 2. e5 d5 3. exd6 exd6 4. h4 g5 5. hxg5 h6 6. gxh6 Bg7 7. hxg7 Nc6 8. gxh8=N Bd7 9. Nc3 Qe7+ 10. Nge2 Nf6 11. Nxf7")]
+        [DataRow("1. e4 e5 2. f4 g5 3. fxg5 h6 4. gxh6 Na6 5. h7 Nb8 6. hxg8=B a6 7. b4 Nc6 8. b5 Nb8 9. bxa6 Nc6 10. axb7 Nb8 11. bxc8=B Nc6 12. Bca6 Nb8 13. Bh7 d5 14. exd5 Nd7 15. Bad3 Nb6 16. c4 Be7 17. c5 Bf8 18. cxb6 Be7 19. b7 Bf8 20. bxa8=B Be7 21. g3 Bf8 22. Bg2 Be7 23. d6 Bf8 24. Bc2 Be7 25. Bac6+ Kf8 26. Bhg6 Bf6 27. Bg2e4")]
+        public void PgnTests(string pgn)
+        {
+            // Arrange
+            var board = ChessBoard.FromPgn(pgn);
+            var boardPgn = board.GetPgn();
+            Assert.AreEqual(pgn, boardPgn);
         }
     }
 }

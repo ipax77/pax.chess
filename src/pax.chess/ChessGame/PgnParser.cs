@@ -35,11 +35,11 @@ public static partial class PgnParser
         {
             if (move.FromPosition.X - move.ToPosition.X < 0)
             {
-                return "0-0";
+                return "O-O";
             }
             else
             {
-                return "0-0-0";
+                return "O-O-O";
             }
         }
 
@@ -49,22 +49,24 @@ public static partial class PgnParser
             moveBuilder.Append(GetPieceTypeString(move.PieceType));
         }
 
-        if (move.IsNotUnique)
-        {
-            var algebraicFrom = move.FromPosition.ToAlgebraicNotation();
-            if (move.PieceType == PieceType.Knight)
-            {
-                moveBuilder.Append(algebraicFrom[1]);
-            }
-            else if (move.FromPosition.X == move.ToPosition.X)
-            {
-                moveBuilder.Append(algebraicFrom[1]);
-            }
-            else
-            {
-                moveBuilder.Append(algebraicFrom[0]);
-            }
-        }
+        moveBuilder.Append(move.PgnFromNotation);
+
+        //if (!string.IsNullOrEmptymove.IsNotUnique && move.PieceType != PieceType.Pawn)
+        //{
+        //    var algebraicFrom = move.FromPosition.ToAlgebraicNotation();
+        //    if (move.PieceType == PieceType.Knight)
+        //    {
+        //        moveBuilder.Append(algebraicFrom[1]);
+        //    }
+        //    else if (move.FromPosition.X == move.ToPosition.X)
+        //    {
+        //        moveBuilder.Append(algebraicFrom[1]);
+        //    }
+        //    else
+        //    {
+        //        moveBuilder.Append(algebraicFrom[0]);
+        //    }
+        //}
 
         // Add capture indicator
         if (move.Capture != PieceType.None)
@@ -225,7 +227,8 @@ public static partial class PgnParser
                     ToPosition = new(moveInfo[1..]),
                     IsCheck = isCheck,
                     IsCheckMate = isCheckMate,
-                    Origin = ent
+                    Origin = ent,
+                    Transformation = transformation
                 });
             }
             else if (moveInfo.Length == 4 && moveInfo[1].Equals('x'))
@@ -251,7 +254,8 @@ public static partial class PgnParser
                     IsCapture = true,
                     IsCheck = isCheck,
                     IsCheckMate = isCheckMate,
-                    Origin = ent
+                    Origin = ent,
+                    Transformation = transformation
                 });
             }
             else if (moveInfo.Length == 4)
@@ -266,7 +270,8 @@ public static partial class PgnParser
                     ToPosition = new(moveInfo[2..]),
                     IsCheck = isCheck,
                     IsCheckMate = isCheckMate,
-                    Origin = ent
+                    Origin = ent,
+                    Transformation = transformation
                 });
             }
             else if (moveInfo.Length == 5 && moveInfo[2].Equals('x'))
@@ -281,7 +286,24 @@ public static partial class PgnParser
                     ToPosition = new(moveInfo[3..]),
                     IsCheck = isCheck,
                     IsCheckMate = isCheckMate,
-                    Origin = ent
+                    Origin = ent,
+                    Transformation = transformation
+                });
+            }
+            else if (moveInfo.Length == 5)
+            {
+                Position from = new(moveInfo[1..3]);
+                moves.Add(new()
+                {
+                    MoveNumber = moveNumber,
+                    PieceType = GetPieceType(moveInfo[0]),
+                    FromX = from.X + 1,
+                    FromY = from.Y + 1,
+                    ToPosition = new(moveInfo[3..]),
+                    IsCheck = isCheck,
+                    IsCheckMate = isCheckMate,
+                    Origin = ent,
+                    Transformation = transformation
                 });
             }
             else
@@ -364,7 +386,7 @@ public record BoardMove
     public bool IsCheck { get; init; }
     public bool IsCheckMate { get; init; }
     public PieceType Capture { get; init; }
-    public bool IsNotUnique { get; init; }
+    public string PgnFromNotation { get; init; } = string.Empty;
     public bool CanCasteQueenSide { get; init; }
     public bool CanCasteKingSide { get; init; }
     public PieceType Transformation { get; init; }
