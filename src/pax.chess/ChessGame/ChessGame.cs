@@ -1,4 +1,5 @@
-﻿using pax.chess.Validation;
+﻿using pax.chess;
+using pax.chess.Validation;
 using System.Globalization;
 using System.Text;
 
@@ -37,6 +38,13 @@ public record ChessBoard
     public int HalfMove { get; private set; }
     public int MoveNumber { get; private set; } = 1;
     public Result Result { get; set; }
+
+    public event EventHandler<MoveEventArgs>? MovePlayed;
+
+    protected virtual void OnMovePlayed(MoveEventArgs e)
+    {
+        MovePlayed?.Invoke(this, e);
+    }
 
     public ChessBoard(string fen)
     {
@@ -90,11 +98,6 @@ public record ChessBoard
                 throw new MoveException($"pgn move from position not found: {move.MoveNumber}: {move.PieceType} to {move.ToPosition}");
             }
 
-            if (move.Transformation != PieceType.None)
-            {
-                Console.Write("indahouse");
-            }
-
             var result = board.Move(fromPosition, move.ToPosition, move.Transformation);
             if (result != MoveState.Ok)
             {
@@ -114,6 +117,7 @@ public record ChessBoard
         SetupSidePieces(isBlack: false, y: 0);
         SetupSidePieces(isBlack: true, y: 7);
     }
+
     private void SetupSidePieces(bool isBlack, int y)
     {
         Pieces[y * 8 + 0] = new Piece(PieceType.Rook, isBlack, 0, y);
@@ -287,7 +291,8 @@ public record ChessBoard
         IsCheck = Validate.IsCheck(this);
         IsCheckMate = Validate.IsCheckMate(this);
 
-        Moves.Add(new()
+
+        BoardMove move = new()
         {
             HalfMove = HalfMove,
             PawnHalfMoveClock = halfMoveClock,
@@ -304,8 +309,11 @@ public record ChessBoard
             CanCasteKingSide = canCastleKingSide,
             CanCasteQueenSide = canCastleQueenSide,
             Transformation = transformation
-        });
+        };
 
+        Moves.Add(move);
+
+        OnMovePlayed(new MoveEventArgs() { Move = move });
         return MoveState.Ok;
     }
 
@@ -363,6 +371,8 @@ public record ChessBoard
         IsCheckMate = false;
 
         Moves.Remove(move);
+
+        OnMovePlayed(new() { Move = move, Reverted = true });
     }
 
     private static bool HandlePromotion(Piece pieceToMove,

@@ -2,9 +2,9 @@
 public record Move
 {
     public int HalfMoveNumber { get; init; }
-    public Piece Piece { get; init; }
-    public Position OldPosition { get; init; }
-    public Position NewPosition { get; init; }
+    public Piece Piece { get; init; } = Piece.Unknown;
+    public Position OldPosition { get; init; } = Position.Unknown;
+    public Position NewPosition { get; init; } = Position.Unknown;
     public PieceType? Transformation { get; init; }
     public Piece? Capture { get; set; }
     public bool IsCastle => Piece.Type == PieceType.King && Math.Abs(OldPosition.X - NewPosition.X) > 1;
@@ -13,6 +13,11 @@ public record Move
     public string PgnMove { get; set; } = String.Empty;
     public Variation? Variation { get; set; }
     public TimeSpan MoveTime { get; set; } = TimeSpan.Zero;
+
+    public Move()
+    {
+        
+    }
 
     public Move(Piece piece, Position newPosition, int number, PieceType? transformation = null)
     {

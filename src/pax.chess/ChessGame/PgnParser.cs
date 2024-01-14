@@ -387,8 +387,8 @@ public record BoardMove
     public bool IsCheckMate { get; init; }
     public PieceType Capture { get; init; }
     public string PgnFromNotation { get; init; } = string.Empty;
-    public bool CanCasteQueenSide { get; init; }
-    public bool CanCasteKingSide { get; init; }
+    public bool CanCasteQueenSide { get; init; } = true;
+    public bool CanCasteKingSide { get; init; } = true;
     public PieceType Transformation { get; init; }
 }
 

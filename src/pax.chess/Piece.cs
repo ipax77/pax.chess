@@ -32,4 +32,6 @@ public record Piece
             _ => string.Empty
         };
     }
+
+    public static Piece Unknown => new(PieceType.None, false, 255, 255);
 }
