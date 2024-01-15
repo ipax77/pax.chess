@@ -246,7 +246,7 @@ public static partial class Validate
             pieces[new Position(to.X, chessBoard.BlackToMove ? to.Y + 1 : to.Y - 1).Index()] = null;
         }
 
-        var newBoard = chessBoard with { Pieces = pieces };
+        var newBoard = new ChessBoard(chessBoard, pieces);
 
         var king = pieces
             .OfType<Piece>()

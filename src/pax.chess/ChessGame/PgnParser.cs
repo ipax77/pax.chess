@@ -390,12 +390,10 @@ public record BoardMove
     public bool CanCasteQueenSide { get; init; } = true;
     public bool CanCasteKingSide { get; init; } = true;
     public PieceType Transformation { get; init; }
+    public Evaluation? Evaluation { get; set; }
+    public IList<IList<Move>> Variations { get; set; } = new List<IList<Move>>();
 }
 
-public record BoardEngineMove : BoardMove
-{
-    public Evaluation? Evaluation { get; set; }
-}
 
 public record PgnMove
 {

@@ -1,5 +1,4 @@
-﻿using pax.chess;
-using pax.chess.Validation;
+﻿using pax.chess.Validation;
 using System.Globalization;
 using System.Text;
 
@@ -21,30 +20,235 @@ public class ChessGame
     public ChessBoard ChessBoard { get; private set; }
 }
 
-public record ChessBoard
+public class ObserverBoard : ChessBoardBase
 {
+    private readonly ChessBoard originalBoard;
+
+    public ObserverBoard(ChessBoard board) : base(board)
+    {
+        originalBoard = board;
+    }
+}
+
+public class ChessBoardBase
+{
+    public ChessBoardBase() { }
+    public ChessBoardBase(ChessBoardBase board)
+    {
+        Pieces = [.. board.Pieces];
+        Moves = [.. board.Moves];
+
+        BlackToMove = board.BlackToMove;
+        WhiteCanCastleKingSide = board.WhiteCanCastleKingSide;
+        WhiteCanCastleQueenSide = board.WhiteCanCastleQueenSide;
+        BlackCanCastleKingSide = board.BlackCanCastleKingSide;
+        BlackCanCastleQueenSide = board.BlackCanCastleQueenSide;
+        EnPassantPosition = board.EnPassantPosition;
+        PawnHalfMoveClock = board.PawnHalfMoveClock;
+        IsCheck = board.IsCheck;
+        IsCheckMate = board.IsCheckMate;
+        HalfMove = board.HalfMove;
+        MoveNumber = board.MoveNumber;
+        Result = board.Result;
+    }
+
+    public ChessBoardBase(ChessBoardBase board, Piece?[] pieces)
+    {
+        Pieces = [.. pieces];
+        Moves = [.. board.Moves];
+
+        BlackToMove = board.BlackToMove;
+        WhiteCanCastleKingSide = board.WhiteCanCastleKingSide;
+        WhiteCanCastleQueenSide = board.WhiteCanCastleQueenSide;
+        BlackCanCastleKingSide = board.BlackCanCastleKingSide;
+        BlackCanCastleQueenSide = board.BlackCanCastleQueenSide;
+        EnPassantPosition = board.EnPassantPosition;
+        PawnHalfMoveClock = board.PawnHalfMoveClock;
+        IsCheck = board.IsCheck;
+        IsCheckMate = board.IsCheckMate;
+        HalfMove = board.HalfMove;
+        MoveNumber = board.MoveNumber;
+        Result = board.Result;
+    }
+
     public Piece?[] Pieces { get; set; } = new Piece[64];
     public IList<BoardMove> Moves { get; set; } = new List<BoardMove>();
-
-    public bool BlackToMove { get; private set; }
-    public bool WhiteCanCastleKingSide { get; private set; } = true;
-    public bool WhiteCanCastleQueenSide { get; private set; } = true;
-    public bool BlackCanCastleKingSide { get; private set; } = true;
-    public bool BlackCanCastleQueenSide { get; private set; } = true;
-    public Position? EnPassantPosition { get; private set; }
-    public int PawnHalfMoveClock { get; private set; }
-    public bool IsCheck { get; private set; }
-    public bool IsCheckMate { get; private set; }
-    public int HalfMove { get; private set; }
-    public int MoveNumber { get; private set; } = 1;
+    public bool BlackToMove { get; protected set; }
+    public bool WhiteCanCastleKingSide { get; protected set; } = true;
+    public bool WhiteCanCastleQueenSide { get; protected set; } = true;
+    public bool BlackCanCastleKingSide { get; protected set; } = true;
+    public bool BlackCanCastleQueenSide { get; protected set; } = true;
+    public Position? EnPassantPosition { get; protected set; }
+    public int PawnHalfMoveClock { get; protected set; }
+    public bool IsCheck { get; protected set; }
+    public bool IsCheckMate { get; protected set; }
+    public int HalfMove { get; protected set; }
+    public int MoveNumber { get; protected set; } = 1;
     public Result Result { get; set; }
 
+    public void DisplayBoard()
+    {
+        Console.WriteLine("  a b c d e f g h");
+        Console.WriteLine(" +----------------");
+        for (int y = 7; y >= 0; y--)
+        {
+            Console.Write($"{y + 1}|");
+            for (int x = 0; x < 8; x++)
+            {
+                var piece = Pieces[y * 8 + x];
+                if (piece == null)
+                {
+                    Console.Write("  ");
+                }
+                else
+                {
+                    char pieceSymbol = GetPieceSymbol(piece);
+                    Console.ForegroundColor = piece.IsBlack ? ConsoleColor.DarkGray : ConsoleColor.White;
+                    Console.Write($" {pieceSymbol}");
+                    Console.ResetColor();
+                }
+            }
+            Console.WriteLine();
+        }
+    }
+    public string GetPgn()
+    {
+        return PgnParser.MovesToPgn(Moves.ToList());
+    }
+
+    public string GetFen()
+    {
+        StringBuilder sb = new();
+        for (int y = 0; y < 8; y++)
+        {
+            int c = 0;
+            for (int x = 0; x < 8; x++)
+            {
+                Piece? piece = Pieces
+                    .OfType<Piece>()
+                    .FirstOrDefault(f => f.Position.X == x && f.Position.Y == 7 - y);
+
+                if (piece != null)
+                {
+                    if (c > 0)
+                    {
+                        sb.Append(c);
+                    }
+                    string pieceString = Map.GetPieceString(piece.Type);
+                    sb.Append(!piece.IsBlack ? pieceString.ToUpper(CultureInfo.InvariantCulture) : pieceString);
+                    c = 0;
+                }
+                else
+                {
+                    c++;
+                }
+            }
+            if (c > 0)
+            {
+                sb.Append(c);
+            }
+            sb.Append('/');
+        }
+        sb.Length--;
+        sb.Append(' ');
+
+        if (BlackToMove)
+        {
+            sb.Append('b');
+        }
+        else
+        {
+            sb.Append('w');
+        }
+        sb.Append(' ');
+
+        if
+        (
+            !WhiteCanCastleKingSide
+         && !WhiteCanCastleQueenSide
+         && !BlackCanCastleKingSide
+         && !BlackCanCastleQueenSide
+
+        )
+        {
+            sb.Append('-');
+        }
+        else
+        {
+            if (WhiteCanCastleKingSide)
+            {
+                sb.Append('K');
+            }
+            if (WhiteCanCastleQueenSide)
+            {
+                sb.Append('Q');
+            }
+            if (BlackCanCastleKingSide)
+            {
+                sb.Append('k');
+            }
+            if (BlackCanCastleQueenSide)
+            {
+                sb.Append('q');
+            }
+        }
+
+        sb.Append(' ');
+        if (EnPassantPosition != null)
+        {
+            char x = Map.GetCharColumn(EnPassantPosition.X);
+            var y = EnPassantPosition.Y.ToString(CultureInfo.InvariantCulture);
+            sb.Append(x);
+            sb.Append(y);
+        }
+        else
+        {
+            sb.Append('-');
+        }
+        sb.Append(' ');
+        sb.Append(PawnHalfMoveClock);
+        sb.Append(' ');
+        sb.Append(MoveNumber);
+
+        return sb.ToString();
+    }
+
+    private static char GetPieceSymbol(Piece piece)
+    {
+        return piece.Type switch
+        {
+            PieceType.Pawn => 'P',
+            PieceType.Knight => 'N',
+            PieceType.Bishop => 'B',
+            PieceType.Rook => 'R',
+            PieceType.Queen => 'Q',
+            PieceType.King => 'K',
+            _ => ' ',
+        };
+    }
+
+    public Piece? GetPieceAt(Position pos)
+    {
+        if (pos.OutOfBounds)
+        {
+            return null;
+        }
+
+        return Pieces[pos.Index()];
+    }
+}
+
+public class ChessBoard : ChessBoardBase
+{
     public event EventHandler<MoveEventArgs>? MovePlayed;
 
     protected virtual void OnMovePlayed(MoveEventArgs e)
     {
         MovePlayed?.Invoke(this, e);
     }
+
+    public ChessBoard(ChessBoard board) : base(board) { }
+    public ChessBoard(ChessBoard board, Piece?[] pieces) : base(board, pieces) { }
 
     public ChessBoard(string fen)
     {
@@ -535,156 +739,5 @@ public record ChessBoard
         {
             return Validate.GetPgnFromNotation(this, pieceToMove, to, otherPieces);
         }
-    }
-
-    public void DisplayBoard()
-    {
-        Console.WriteLine("  a b c d e f g h");
-        Console.WriteLine(" +----------------");
-        for (int y = 7; y >= 0; y--)
-        {
-            Console.Write($"{y + 1}|");
-            for (int x = 0; x < 8; x++)
-            {
-                var piece = Pieces[y * 8 + x];
-                if (piece == null)
-                {
-                    Console.Write("  ");
-                }
-                else
-                {
-                    char pieceSymbol = GetPieceSymbol(piece);
-                    Console.ForegroundColor = piece.IsBlack ? ConsoleColor.DarkGray : ConsoleColor.White;
-                    Console.Write($" {pieceSymbol}");
-                    Console.ResetColor();
-                }
-            }
-            Console.WriteLine();
-        }
-    }
-    public string GetPgn()
-    {
-        return PgnParser.MovesToPgn(Moves.ToList());
-    }
-
-    public string GetFen()
-    {
-        StringBuilder sb = new();
-        for (int y = 0; y < 8; y++)
-        {
-            int c = 0;
-            for (int x = 0; x < 8; x++)
-            {
-                Piece? piece = Pieces
-                    .OfType<Piece>()
-                    .FirstOrDefault(f => f.Position.X == x && f.Position.Y == 7 - y);
-
-                if (piece != null)
-                {
-                    if (c > 0)
-                    {
-                        sb.Append(c);
-                    }
-                    string pieceString = Map.GetPieceString(piece.Type);
-                    sb.Append(!piece.IsBlack ? pieceString.ToUpper(CultureInfo.InvariantCulture) : pieceString);
-                    c = 0;
-                }
-                else
-                {
-                    c++;
-                }
-            }
-            if (c > 0)
-            {
-                sb.Append(c);
-            }
-            sb.Append('/');
-        }
-        sb.Length--;
-        sb.Append(' ');
-
-        if (BlackToMove)
-        {
-            sb.Append('b');
-        }
-        else
-        {
-            sb.Append('w');
-        }
-        sb.Append(' ');
-
-        if
-        (
-            !WhiteCanCastleKingSide
-         && !WhiteCanCastleQueenSide
-         && !BlackCanCastleKingSide
-         && !BlackCanCastleQueenSide
-
-        )
-        {
-            sb.Append('-');
-        }
-        else
-        {
-            if (WhiteCanCastleKingSide)
-            {
-                sb.Append('K');
-            }
-            if (WhiteCanCastleQueenSide)
-            {
-                sb.Append('Q');
-            }
-            if (BlackCanCastleKingSide)
-            {
-                sb.Append('k');
-            }
-            if (BlackCanCastleQueenSide)
-            {
-                sb.Append('q');
-            }
-        }
-
-        sb.Append(' ');
-        if (EnPassantPosition != null)
-        {
-            char x = Map.GetCharColumn(EnPassantPosition.X);
-            var y = EnPassantPosition.Y.ToString(CultureInfo.InvariantCulture);
-            sb.Append(x);
-            sb.Append(y);
-        }
-        else
-        {
-            sb.Append('-');
-        }
-        sb.Append(' ');
-        sb.Append(PawnHalfMoveClock);
-        sb.Append(' ');
-        sb.Append(MoveNumber);
-
-        return sb.ToString();
-    }
-
-    private static char GetPieceSymbol(Piece piece)
-    {
-        return piece.Type switch
-        {
-            PieceType.Pawn => 'P',
-            PieceType.Knight => 'N',
-            PieceType.Bishop => 'B',
-            PieceType.Rook => 'R',
-            PieceType.Queen => 'Q',
-            PieceType.King => 'K',
-            _ => ' ',
-        };
-    }
-
-    public Piece? GetPieceAt(Position pos)
-    {
-        if (pos.OutOfBounds)
-        {
-            return null;
-        }
-
-        return Pieces[pos.Index()];
     }
 }
