@@ -28,6 +28,9 @@ public class ObserverBoard : ChessBoardBase
     {
         originalBoard = board;
     }
+
+    public IList<BoardMove> ObserverMoves { get; set; } = new List<BoardMove>();
+
 }
 
 public class ChessBoardBase
