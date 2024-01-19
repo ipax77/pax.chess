@@ -378,20 +378,20 @@ public record BoardMove
 {
     public int HalfMove { get; init; }
     public int PawnHalfMoveClock { get; init; }
-    public PieceType PieceType { get; init; }
+    public PieceType PieceType { get; set; }
     public Position FromPosition { get; init; } = Position.Unknown;
     public Position ToPosition { get; init; } = Position.Unknown;
-    public bool EnPassantCapture { get; init; }
-    public bool EnPassantPawnMove { get; init; }
-    public bool IsCheck { get; init; }
-    public bool IsCheckMate { get; init; }
+    public bool EnPassantCapture { get; set; }
+    public bool EnPassantPawnMove { get; set; }
+    public bool IsCheck { get; set; }
+    public bool IsCheckMate { get; set; }
     public PieceType Capture { get; init; }
     public string PgnFromNotation { get; init; } = string.Empty;
     public bool CanCasteQueenSide { get; init; } = true;
     public bool CanCasteKingSide { get; init; } = true;
     public PieceType Transformation { get; init; }
     public Evaluation? Evaluation { get; set; }
-    public IList<IList<Move>> Variations { get; set; } = new List<IList<Move>>();
+    public IList<IList<BoardMove>> Variations { get; set; } = new List<IList<BoardMove>>();
 }
 
 

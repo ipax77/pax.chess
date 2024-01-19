@@ -30,7 +30,14 @@ public class ObserverBoard : ChessBoardBase
     }
 
     public IList<BoardMove> ObserverMoves { get; set; } = new List<BoardMove>();
+}
 
+public record CurrentMove
+{
+    public int Index { get; set; }
+    public int Variation { get; set; }
+    public int VariationIndex { get; set; }
+    public bool InVariation { get; set; }
 }
 
 public class ChessBoardBase
@@ -244,6 +251,7 @@ public class ChessBoardBase
 public class ChessBoard : ChessBoardBase
 {
     public event EventHandler<MoveEventArgs>? MovePlayed;
+    public CurrentMove CurrentMove { get; private set; } = new();
 
     protected virtual void OnMovePlayed(MoveEventArgs e)
     {
@@ -427,8 +435,13 @@ public class ChessBoard : ChessBoardBase
     /// <param name="to"></param>
     /// <param name="transformation">Required if pawn reaches last rank</param>
     /// <param name="skipValidation">Optional e.g. for engine moves</param>
+    /// <param name="evaluation"></param>
     /// <returns></returns>
-    public MoveState Move(Position from, Position to, PieceType transformation = PieceType.None, bool skipValidation = false)
+    public MoveState Move(Position from,
+                          Position to,
+                          PieceType transformation = PieceType.None,
+                          bool skipValidation = false,
+                          Evaluation? evaluation = null)
     {
         if (!skipValidation)
         {
@@ -459,19 +472,73 @@ public class ChessBoard : ChessBoardBase
         var halfMoveClock = PawnHalfMoveClock;
         SetHalfMoveClock(pieceToMove, capture);
         (var isEnPassantMove, var isEnPassantCapture) = HandleEnPassant(pieceToMove, capture, to);
-        var isPromotion = HandlePromotion(pieceToMove, to, transformation);
         var pgnFromNotation = GetPgnNotation(pieceToMove, to);
 
-        Pieces[from.Index()] = null;
-        Pieces[to.Index()] = pieceToMove;
-        pieceToMove.Position = to;
+        BlackToMove = !BlackToMove;
+        HalfMove++;
+        if (!BlackToMove)
+        {
+            MoveNumber++;
+        }
+
+        BoardMove move = new()
+        {
+            HalfMove = HalfMove,
+            PawnHalfMoveClock = halfMoveClock,
+            FromPosition = from,
+            ToPosition = to,
+            EnPassantCapture = isEnPassantCapture,
+            EnPassantPawnMove = isEnPassantMove,
+            Capture = isEnPassantCapture ? PieceType.Pawn :
+                capture == null ? PieceType.None : capture.Type,
+            PgnFromNotation = pgnFromNotation,
+            CanCasteKingSide = canCastleKingSide,
+            CanCasteQueenSide = canCastleQueenSide,
+            Transformation = transformation,
+            Evaluation = evaluation
+        };
+
+        ExecuteMove(move);
+
+        move.IsCheck = IsCheck;
+        move.IsCheckMate = IsCheckMate;
+
+        if (CurrentMove.InVariation)
+        {
+            Moves[CurrentMove.Index].Variations[CurrentMove.Variation].Add(move);
+            CurrentMove.VariationIndex++;
+        }
+        else
+        {
+            Moves.Add(move);
+            CurrentMove.Index++;
+        }
+
+        OnMovePlayed(new MoveEventArgs() { Move = move });
+        return MoveState.Ok;
+    }
+
+    private void ExecuteMove(BoardMove move)
+    {
+        var pieceToMove = GetPieceAt(move.FromPosition);
+
+        if (pieceToMove is null)
+        {
+            return;
+        }
+
+        Pieces[move.FromPosition.Index()] = null;
+        Pieces[move.ToPosition.Index()] = pieceToMove;
+        pieceToMove.Position = move.ToPosition;
+
+        bool isPromotion = false;
 
         // castle
-        if (pieceToMove.Type == PieceType.King && Math.Abs(from.X - to.X) > 1)
+        if (pieceToMove.Type == PieceType.King && Math.Abs(move.FromPosition.X - move.ToPosition.X) > 1)
         {
             Position rookFrom;
             Position rookTo;
-            if (from.X - to.X < 0)
+            if (move.FromPosition.X - move.ToPosition.X < 0)
             {
                 rookFrom = BlackToMove ? new(7, 7) : new(7, 0);
                 rookTo = BlackToMove ? new(5, 7) : new(5, 0);
@@ -487,41 +554,15 @@ public class ChessBoard : ChessBoardBase
             Pieces[rookTo.Index()] = rook;
             rook.Position = rookTo;
         }
-
-        BlackToMove = !BlackToMove;
-        HalfMove++;
-        if (!BlackToMove)
+        else
         {
-            MoveNumber++;
+            isPromotion = HandlePromotion(pieceToMove, move.FromPosition, move.Transformation);
+            move.PieceType = isPromotion ? PieceType.Pawn : pieceToMove.Type;
         }
-
         IsCheck = Validate.IsCheck(this);
         IsCheckMate = Validate.IsCheckMate(this);
-
-
-        BoardMove move = new()
-        {
-            HalfMove = HalfMove,
-            PawnHalfMoveClock = halfMoveClock,
-            PieceType = isPromotion ? PieceType.Pawn : pieceToMove.Type,
-            FromPosition = from,
-            ToPosition = to,
-            EnPassantCapture = isEnPassantCapture,
-            EnPassantPawnMove = isEnPassantMove,
-            IsCheck = IsCheck,
-            IsCheckMate = IsCheckMate,
-            Capture = isEnPassantCapture ? PieceType.Pawn :
-                capture == null ? PieceType.None : capture.Type,
-            PgnFromNotation = pgnFromNotation,
-            CanCasteKingSide = canCastleKingSide,
-            CanCasteQueenSide = canCastleQueenSide,
-            Transformation = transformation
-        };
-
-        Moves.Add(move);
-
-        OnMovePlayed(new MoveEventArgs() { Move = move });
-        return MoveState.Ok;
+        move.IsCheck = IsCheck;
+        move.IsCheckMate = IsCheckMate;
     }
 
     public void RevertMove()
@@ -578,6 +619,74 @@ public class ChessBoard : ChessBoardBase
         IsCheckMate = false;
 
         Moves.Remove(move);
+
+        OnMovePlayed(new() { Move = move, Reverted = true });
+    }
+
+    public void MoveForward()
+    {
+        BoardMove? nextMove = null;
+
+        if (!CurrentMove.InVariation && Moves.Count > CurrentMove.Index + 1)
+        {
+            nextMove = Moves[CurrentMove.Index++];
+        }
+        else
+        {
+
+        }
+    }
+
+    public void Movebackward()
+    {
+        BoardMove? move = null;
+
+        var pieceToRevert = GetPieceAt(move.ToPosition);
+
+        ArgumentNullException.ThrowIfNull(pieceToRevert);
+
+        Pieces[move.ToPosition.Index()] = null;
+        Pieces[move.FromPosition.Index()] = pieceToRevert;
+        pieceToRevert.Position = move.FromPosition;
+
+        if (pieceToRevert.IsBlack)
+        {
+            BlackCanCastleKingSide = move.CanCasteKingSide;
+            BlackCanCastleQueenSide = move.CanCasteQueenSide;
+        }
+        else
+        {
+            WhiteCanCastleKingSide = move.CanCasteKingSide;
+            WhiteCanCastleQueenSide = move.CanCasteQueenSide;
+        }
+
+        if (move.Capture != PieceType.None)
+        {
+            Position revertCapturePos;
+            if (move.EnPassantCapture)
+            {
+                revertCapturePos = new(move.ToPosition.X, pieceToRevert.IsBlack ? move.ToPosition.Y + 1 : move.ToPosition.Y - 1);
+            }
+            else
+            {
+                revertCapturePos = move.ToPosition;
+            }
+            Pieces[revertCapturePos.Index()] = new(move.Capture, !pieceToRevert.IsBlack, revertCapturePos.X, revertCapturePos.Y);
+        }
+
+        PawnHalfMoveClock = move.PawnHalfMoveClock;
+        HalfMove--;
+        BlackToMove = !BlackToMove;
+        if (BlackToMove)
+        {
+            MoveNumber--;
+        }
+
+        IsCheck = Validate.IsCheck(this);
+        IsCheckMate = false;
+
+        Moves.Remove(move);
+        CurrentMove = Moves.LastOrDefault();
 
         OnMovePlayed(new() { Move = move, Reverted = true });
     }
