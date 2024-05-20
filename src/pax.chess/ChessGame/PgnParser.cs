@@ -391,9 +391,26 @@ public record BoardMove
     public bool CanCasteKingSide { get; init; } = true;
     public PieceType Transformation { get; init; }
     public Evaluation? Evaluation { get; set; }
-    public IList<IList<BoardMove>> Variations { get; set; } = new List<IList<BoardMove>>();
+    public MoveVariation? Variation { get; set;}
+    public BoardMove? BaseMove { get; set; }
 }
 
+public record MoveVariation
+{
+    public int StartMove { get; init; }
+    public int RootStartMove { get; init; }
+    public List<BoardMove> Moves { get; init; } = [];
+    public MoveVariation? RootVariation { get; set; }
+    public List<MoveVariation> ChildVariations { get; init; } = [];
+    public Evaluation? Evaluation { get; set; }
+    public int Pv { get; set; }
+    public MoveVariation(int startMove, MoveVariation? rootVariation = null, int rootStartMove = 0)
+    {
+        StartMove = startMove;
+        RootVariation = rootVariation;
+        RootStartMove = rootStartMove;
+    }
+}
 
 public record PgnMove
 {
