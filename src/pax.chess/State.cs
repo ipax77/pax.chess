@@ -85,10 +85,6 @@ public record State
                 move.Capture = Pieces.First(f => f.Position == new Position(Info.EnPassantPosition.X, Info.EnPassantPosition.Y + delta));
                 Pieces.Remove(move.Capture);
             }
-            if (move.Transformation != null)
-            {
-                move.Piece.Type = (PieceType)move.Transformation;
-            }
         }
         move.PgnMove = Pgn.MapPiece(move, this);
 
