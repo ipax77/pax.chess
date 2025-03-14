@@ -86,7 +86,14 @@ public record State
                 Pieces.Remove(move.Capture);
             }
         }
+        
         move.PgnMove = Pgn.MapPiece(move, this);
+        
+        // Handle promotion, after generating the PGN
+        if (move.Transformation is not null)
+        {
+            move.Piece.Type = move.Transformation.Value;
+        }
 
         move.Piece.Position = move.NewPosition;
 
