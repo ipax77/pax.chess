@@ -148,10 +148,22 @@ namespace pax.chess.tests
         {
             var game = Pgn.MapString("1. g4 h5 2. gxh5 a6 3. h6 d6 4. h7 c6");
             var move = Map.GetEngineMove("h7g8Q");
-            if (move is null) throw new ArgumentNullException();
+            ArgumentNullException.ThrowIfNull(move);
             var state = game.Move(move);
             var pgn = Pgn.MapPieces(game.State);
             Assert.Equal("1. g4 h5 2. gxh5 a6 3. h6 d6 4. h7 c6 5. hxg8=Q ", pgn);
+        }
+
+        [Fact]
+        public void PawnPromote_PieceBecomesQueen()
+        {
+            var game = Pgn.MapString("1. g4 h5 2. gxh5 a6 3. h6 d6 4. h7 c6");
+            var move = Map.GetEngineMove("h7g8Q");
+            ArgumentNullException.ThrowIfNull(move);
+            var state = game.Move(move);
+            var pieces = game.State.Pieces;
+            var promotedPiece = pieces.Single(p => p.Position == new Position(6, 7));
+            Assert.Equal(PieceType.Queen, promotedPiece.Type);
         }
 
         [Fact]
