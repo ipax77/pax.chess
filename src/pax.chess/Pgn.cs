@@ -337,6 +337,7 @@ public static class Pgn
 
         if (move.Transformation != null && move.Piece.Type == PieceType.Pawn)
         {
+            sb.Append('=');
             sb.Append(Map.GetPieceString((PieceType)move.Transformation).ToUpperInvariant());
         }
         return sb.ToString();
