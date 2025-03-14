@@ -153,7 +153,7 @@ namespace pax.chess.tests
             var pgn = Pgn.MapPieces(game.State);
             Assert.Equal("1. g4 h5 2. gxh5 a6 3. h6 d6 4. h7 c6 5. hxg8=Q ", pgn);
         }
-        
+
         [Fact]
         public void PawnPromote_PieceBecomesQueen()
         {
@@ -164,6 +164,29 @@ namespace pax.chess.tests
             var pieces = game.State.Pieces;
             var promotedPiece = pieces.Single(p => p.Position == new Position(6, 7));
             Assert.Equal(PieceType.Queen, promotedPiece.Type);
+        }
+
+        [Fact]
+        public void PawnPromote_PromotedQueenCanMove()
+        {
+            var game = Pgn.MapString("1. g4 h5 2. gxh5 a6 3. h6 d6 4. h7 c6");
+            var move = Map.GetEngineMove("h7g8Q");
+            ArgumentNullException.ThrowIfNull(move);
+            var state = game.Move(move);
+            Assert.Equal(MoveState.Ok, state);
+            game.Move(new EngineMove(new(2, 7), new(3, 6))); // Bd7
+            var queenMoveState = game.Move(new EngineMove(new(6, 7), new(7, 7))); // Qxh8
+            Assert.Equal(MoveState.Ok, queenMoveState);
+        }
+
+        [Fact]
+        public void PawnPromote_PromotedKnightCanMove()
+        {
+            var game = Pgn.MapString("1. g4 h5 2. gxh5 a6 3. h6 d6 4. h7 c6");
+            game.Move(new EngineMove(new(7, 6), new(6, 7), PieceType.Knight)); // hxg8=N
+            game.Move(new EngineMove(new(2, 7), new(3, 6))); // Bd7
+            var knightMoveState = game.Move(new EngineMove(new(6, 7), new(5, 5))); // Nf6+
+            Assert.Equal(MoveState.Ok, knightMoveState);
         }
     }
 }
