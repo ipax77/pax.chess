@@ -15,10 +15,7 @@ public static class DbMap
     /// </summary>
     public static Game GetGame(DbGame dbGame, string? name = null)
     {
-        if (dbGame == null)
-        {
-            throw new ArgumentNullException(nameof(dbGame));
-        }
+        ArgumentNullException.ThrowIfNull(dbGame);
 
         Game game = new();
         if (name != null)
@@ -39,7 +36,7 @@ public static class DbMap
         game.Termination = dbGame.Termination;
 
 
-        if (dbGame.MoveEvaluations.Any())
+        if (dbGame.MoveEvaluations.Count != 0)
         {
             foreach (var eval in dbGame.MoveEvaluations)
             {
@@ -52,11 +49,13 @@ public static class DbMap
                     game.State.Moves[variation.StartMove].Evaluation = variation.Evaluation;
                 }
 
-                if (!game.ReviewVariations.ContainsKey(variation.StartMove))
+                if (!game.ReviewVariations.TryGetValue(variation.StartMove, out List<Variation>? value))
                 {
-                    game.ReviewVariations[variation.StartMove] = new List<Variation>();
+                    value = new List<Variation>();
+                    game.ReviewVariations[variation.StartMove] = value;
                 }
-                game.ReviewVariations[variation.StartMove].Add(variation);
+
+                value.Add(variation);
             }
 
             foreach (var ent in game.ReviewVariations)
@@ -67,9 +66,9 @@ public static class DbMap
         game.Variations.Clear();
         game.State.Moves.ForEach(f => f.Variation = null);
 
-        if (dbGame.Variations.Any())
+        if (dbGame.Variations.Count != 0)
         {
-            foreach (var dbVariation in dbGame.Variations.Where(x => x.EngineMoves.Any()))
+            foreach (var dbVariation in dbGame.Variations.Where(x => x.EngineMoves.Length != 0))
             {
                 var variation = GetVariation(game, dbVariation.StartMove, dbVariation.EngineMoves);
                 if (dbVariation.Evaluation != null)
@@ -84,7 +83,7 @@ public static class DbMap
         game.Result = dbGame.Result;
         game.Termination = dbGame.Termination;
 
-        if (game.State.Moves.Any())
+        if (game.State.Moves.Count != 0)
         {
             game.ObserverMoveTo(game.State.Moves.First());
             game.ObserverMoveBackward();
@@ -94,10 +93,7 @@ public static class DbMap
 
     private static Variation GetVariation(Game game, int startMoveId, string engineMoves)
     {
-        if (game == null)
-        {
-            throw new ArgumentNullException(nameof(game));
-        }
+        ArgumentNullException.ThrowIfNull(game);
 
         var moves = GetEngineMoves(engineMoves);
 
@@ -155,10 +151,7 @@ public static class DbMap
     /// </summary>
     public static DbGame GetGame(Game game)
     {
-        if (game == null)
-        {
-            throw new ArgumentNullException(nameof(game));
-        }
+        ArgumentNullException.ThrowIfNull(game);
         DbGame dbGame = new();
         SetGameInfo(dbGame, game);
         dbGame.HalfMoves = game.State.Moves.Count;
@@ -170,39 +163,39 @@ public static class DbMap
 
     private static void SetGameInfo(DbGame dbGame, Game game)
     {
-        if (game.Infos.Any())
+        if (game.Infos.Count != 0)
         {
-            if (game.Infos.ContainsKey("Event"))
+            if (game.Infos.TryGetValue("Event", out string? value))
             {
-                dbGame.Event = game.Infos["Event"];
+                dbGame.Event = value;
             }
-            if (game.Infos.ContainsKey("Link"))
+            if (game.Infos.TryGetValue("Link", out string? lvalue))
             {
-                dbGame.Site = game.Infos["Link"];
+                dbGame.Site = lvalue;
             }
-            else if (game.Infos.ContainsKey("Site"))
+            else if (game.Infos.TryGetValue("Site", out string? svalue))
             {
-                dbGame.Site = game.Infos["Site"];
+                dbGame.Site = svalue;
             }
             else
             {
                 dbGame.Site = game.GameGuid.ToString();
             }
-            if (game.Infos.ContainsKey("UTCDate"))
+            if (game.Infos.TryGetValue("UTCDate", out string? tvalue))
             {
-                dbGame.UTCDate = DateOnly.ParseExact(game.Infos["UTCDate"], "yyyy.MM.dd", CultureInfo.InvariantCulture);
+                dbGame.UTCDate = DateOnly.ParseExact(tvalue, "yyyy.MM.dd", CultureInfo.InvariantCulture);
             }
-            if (game.Infos.ContainsKey("UTCTime"))
+            if (game.Infos.TryGetValue("UTCTime", out string? dvalue))
             {
-                dbGame.UTCTime = TimeOnly.ParseExact(game.Infos["UTCTime"], @"HH\:mm\:ss", CultureInfo.InvariantCulture);
+                dbGame.UTCTime = TimeOnly.ParseExact(dvalue, @"HH\:mm\:ss", CultureInfo.InvariantCulture);
             }
-            if (game.Infos.ContainsKey("White"))
+            if (game.Infos.TryGetValue("White", out string? wvalue))
             {
-                dbGame.White = game.Infos["White"];
+                dbGame.White = wvalue;
             }
-            if (game.Infos.ContainsKey("Black"))
+            if (game.Infos.TryGetValue("Black", out string? bvalue))
             {
-                dbGame.Black = game.Infos["Black"];
+                dbGame.Black = bvalue;
             }
             if (game.Infos.ContainsKey("WhiteElo"))
             {
@@ -218,34 +211,34 @@ public static class DbMap
                     dbGame.BlackElo = elo;
                 }
             }
-            if (game.Infos.ContainsKey("Variant"))
+            if (game.Infos.TryGetValue("Variant", out string? vvalue))
             {
-                dbGame.Variant = game.Infos["Variant"] switch
+                dbGame.Variant = vvalue switch
                 {
                     "Standard" => Variant.Standard,
                     "Chess960" => Variant.Chess960,
                     _ => Variant.Unknown
                 };
             }
-            if (game.Infos.ContainsKey("ECO"))
+            if (game.Infos.TryGetValue("ECO", out string? evalue))
             {
-                dbGame.ECO = game.Infos["ECO"];
+                dbGame.ECO = evalue;
             }
-            if (game.Infos.ContainsKey("Opening"))
+            if (game.Infos.TryGetValue("Opening", out string? ovalue))
             {
-                dbGame.Opening = game.Infos["Opening"];
+                dbGame.Opening = ovalue;
             }
-            if (game.Infos.ContainsKey("Annotator"))
+            if (game.Infos.TryGetValue("Annotator", out string? avalue))
             {
-                dbGame.Annotator = game.Infos["Annotator"];
+                dbGame.Annotator = avalue;
             }
-            if (game.Infos.ContainsKey("TimeControl"))
+            if (game.Infos.TryGetValue("TimeControl", out string? tcvalue))
             {
-                dbGame.TimeControl = game.Infos["TimeControl"];
+                dbGame.TimeControl = tcvalue;
             }
-            if (game.Infos.ContainsKey("Result"))
+            if (game.Infos.TryGetValue("Result", out string? rvalue))
             {
-                dbGame.Result = game.Infos["Result"] switch
+                dbGame.Result = rvalue switch
                 {
                     "0-1" => Result.BlackWin,
                     "1-0" => Result.WhiteWin,
@@ -253,9 +246,9 @@ public static class DbMap
                     _ => Result.None
                 };
             }
-            if (game.Infos.ContainsKey("Termination"))
+            if (game.Infos.TryGetValue("Termination", out string? tervalue))
             {
-                dbGame.Termination = game.Infos["Termination"] switch
+                dbGame.Termination = tervalue switch
                 {
                     "Normal" => Termination.Agreed,
                     "Time forfeit" => Termination.Time,
@@ -295,14 +288,11 @@ public static class DbMap
 
     private static List<DbVariation> GetVariations(Game game)
     {
-        if (game == null)
-        {
-            throw new ArgumentNullException(nameof(game));
-        }
+        ArgumentNullException.ThrowIfNull(game);
         List<DbVariation> variations = new();
         foreach (var ent in game.Variations)
         {
-            foreach (var variation in ent.Value.Where(x => x.RootVariation == null && x.Moves.Any()))
+            foreach (var variation in ent.Value.Where(x => x.RootVariation == null && x.Moves.Count != 0))
             {
                 DbEvaluation? dbEvaluation = null;
                 if (variation.Evaluation != null)
@@ -320,7 +310,7 @@ public static class DbMap
                     Evaluation = dbEvaluation
                 };
 
-                foreach (var subvariation in ent.Value.Where(x => x.RootVariation == variation && x.Moves.Any()))
+                foreach (var subvariation in ent.Value.Where(x => x.RootVariation == variation && x.Moves.Count != 0))
                 {
                     // todo recursive subsub search
                     dbVariation.SubVariations.Add(new DbSubVariation()
@@ -341,14 +331,8 @@ public static class DbMap
     /// </summary>
     public static void UpdateDbGame(DbGame dbGame, Game game)
     {
-        if (dbGame == null)
-        {
-            throw new ArgumentNullException(nameof(dbGame));
-        }
-        if (game == null)
-        {
-            throw new ArgumentNullException(nameof(game));
-        }
+        ArgumentNullException.ThrowIfNull(dbGame);
+        ArgumentNullException.ThrowIfNull(game);
         SetGameInfo(dbGame, game);
         dbGame.HalfMoves = game.State.Moves.Count;
         dbGame.EngineMoves = String.Concat(game.State.Moves.Select(s => Map.GetEngineMoveString(s)));
@@ -358,7 +342,7 @@ public static class DbMap
 
     private static List<DbMoveEvaluation> GetMoveEvaluations(Game game)
     {
-        if (!game.ReviewVariations.Any())
+        if (game.ReviewVariations.Count == 0)
         {
             return new List<DbMoveEvaluation>();
         }

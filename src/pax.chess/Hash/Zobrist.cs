@@ -62,10 +62,7 @@ public static class Zobrist
     /// </remarks>    
     public static uint GetHashCode(State state)
     {
-        if (state == null)
-        {
-            throw new ArgumentNullException(nameof(state));
-        }
+        ArgumentNullException.ThrowIfNull(state);
 
         if (Start == 0)
         {

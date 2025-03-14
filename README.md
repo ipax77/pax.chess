@@ -1,10 +1,10 @@
 # Introduction
 
-C# dotnet 6 chess library with pgn/fen import/export and move validation.
+C# dotnet chess library with pgn/fen import/export and move validation.
 
 # Getting started
 ## Prerequisites
-dotnet 6
+dotnet
 
 ## Installation
 You can install it with the Package Manager in your IDE or alternatively using the command line:

@@ -15,10 +15,6 @@ public class MoveException : Exception
     public MoveException(string message, Exception innerExeption) : base(message, innerExeption)
     {
     }
-
-    protected MoveException(SerializationInfo info, StreamingContext context) : base(info, context)
-    {
-    }
 }
 
 
@@ -34,10 +30,6 @@ public class MoveMapException : Exception
     }
 
     public MoveMapException(string message, Exception innerExeption) : base(message, innerExeption)
-    {
-    }
-
-    protected MoveMapException(SerializationInfo info, StreamingContext context) : base(info, context)
     {
     }
 }
