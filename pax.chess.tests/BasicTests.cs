@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Xunit;
 
@@ -140,6 +141,17 @@ namespace pax.chess.tests
             Game game = new Game(fen);
             var pawn = game.State.Pieces.FirstOrDefault(p => !p.IsBlack && p.Position == new Position(0, 3));
             Assert.NotNull(pawn);
+        }
+
+        [Fact]
+        public void Pgn_PawnPromote_ValidPgnOutput()
+        {
+            var game = Pgn.MapString("1. g4 h5 2. gxh5 a6 3. h6 d6 4. h7 c6");
+            var move = Map.GetEngineMove("h7g8Q");
+            if (move is null) throw new ArgumentNullException();
+            var state = game.Move(move);
+            var pgn = Pgn.MapPieces(game.State);
+            Assert.Equal("1. g4 h5 2. gxh5 a6 3. h6 d6 4. h7 c6 5. hxg8=Q ", pgn);
         }
     }
 }
