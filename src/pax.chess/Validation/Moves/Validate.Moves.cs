@@ -11,14 +11,8 @@ public static partial class Validate
     /// </remarks>       
     public static IReadOnlyCollection<Position> GetMoves(Piece piece, State state)
     {
-        if (piece == null)
-        {
-            throw new ArgumentNullException(nameof(piece));
-        }
-        if (state == null)
-        {
-            throw new ArgumentNullException(nameof(state));
-        }
+        ArgumentNullException.ThrowIfNull(piece);
+        ArgumentNullException.ThrowIfNull(state);
         return piece.Type switch
         {
             PieceType.Pawn => GetPawnMoves(piece, state),

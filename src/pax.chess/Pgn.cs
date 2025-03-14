@@ -22,7 +22,7 @@ public static class Pgn
 
         for (int i = 0; i < pgnLines.Length; i++)
         {
-            if (!moveSection && pgnLines[i].StartsWith("[", StringComparison.Ordinal))
+            if (!moveSection && pgnLines[i].StartsWith('['))
             {
                 var info = infoRx.Match(pgnLines[i]);
                 if (info.Success)
@@ -171,16 +171,16 @@ public static class Pgn
         {
             move = move.Remove(move.Length - 2, 2);
         }
-        else if (move.EndsWith("!", StringComparison.Ordinal))
+        else if (move.EndsWith('!'))
         {
             move = move.Remove(move.Length - 1, 1);
         }
-        else if (move.EndsWith("?", StringComparison.Ordinal))
+        else if (move.EndsWith('?'))
         {
             move = move.Remove(move.Length - 1, 1);
         }
 
-        if (move.EndsWith("+", StringComparison.Ordinal))
+        if (move.EndsWith('+'))
         {
             move = move.Remove(move.Length - 1, 1);
         }

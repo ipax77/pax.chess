@@ -7,14 +7,8 @@ public static partial class Validate
     /// <returns>MoveState.Ok if successful.</returns>
     public static MoveState TryExecuteMove(EngineMove engineMove, State state)
     {
-        if (engineMove == null)
-        {
-            throw new ArgumentNullException(nameof(engineMove));
-        }
-        if (state == null)
-        {
-            throw new ArgumentNullException(nameof(state));
-        }
+        ArgumentNullException.ThrowIfNull(engineMove);
+        ArgumentNullException.ThrowIfNull(state);
         Piece? pieceToMove = state.Pieces.SingleOrDefault(s => s.Position == engineMove.OldPosition);
 
         if (pieceToMove == null)
@@ -93,10 +87,10 @@ public static partial class Validate
 
         Position[] checkPositions = (king.IsBlack, KingSide) switch
         {
-            (true, true) => new Position[2] { new Position(5, 7), new Position(6, 7) },
-            (true, false) => new Position[2] { new Position(2, 7), new Position(3, 7) },
-            (false, true) => new Position[2] { new Position(5, 0), new Position(6, 0) },
-            (false, false) => new Position[2] { new Position(2, 0), new Position(3, 0) },
+            (true, true) => [new Position(5, 7), new Position(6, 7)],
+            (true, false) => [new Position(2, 7), new Position(3, 7)],
+            (false, true) => [new Position(5, 0), new Position(6, 0)],
+            (false, false) => [new Position(2, 0), new Position(3, 0)],
         };
 
         for (int i = 0; i < checkPositions.Length; i++)
@@ -168,13 +162,8 @@ public static partial class Validate
     {
         ArgumentNullException.ThrowIfNull(piece);
         ArgumentNullException.ThrowIfNull(state);
-        
-        if ((state.Info.BlackToMove && !piece.IsBlack)
-         || (!state.Info.BlackToMove && piece.IsBlack)
-        )
-        {
-            return false;
-        }
-        return true;
+
+        return (!state.Info.BlackToMove || piece.IsBlack)
+         && (state.Info.BlackToMove || !piece.IsBlack);
     }
 }
