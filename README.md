@@ -46,3 +46,13 @@ Game game = Pgn.MapString(pgn);
 var state = game.Move(new EngineMove(new Position(4, 0), new Position(6, 0)));
 Assert.True(state == MoveState.CastleNotAllowed);
 ```
+
+## ChangeLog
+
+<details open="open"><summary>v0.6.6</summary>
+
+>- ** Breaking Changes **
+>- Update to dotnet 8
+>- Fix pawn promotion png
+
+</details>
