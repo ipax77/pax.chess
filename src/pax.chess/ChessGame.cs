@@ -1,23 +1,16 @@
 
 namespace pax.chess;
 
-public sealed class ChessGame
+public sealed class ChessGame(BoardPosition initialPosition, GameMetadata metadata)
 {
-    public BoardPosition CurrentPosition { get; private set; }
+    public BoardPosition CurrentPosition { get; private set; } = initialPosition ?? throw new ArgumentNullException(nameof(initialPosition));
 
     public IReadOnlyList<Move> Moves => _moves.AsReadOnly();
-    private readonly List<Move> _moves = new();
+    private readonly List<Move> _moves = [];
 
-    public GameMetadata Metadata { get; }
+    public GameMetadata Metadata { get; } = metadata ?? new GameMetadata();
 
-    public GameResult Result { get; private set; }
-
-    public ChessGame(BoardPosition initialPosition, GameMetadata metadata)
-    {
-        CurrentPosition = initialPosition ?? throw new ArgumentNullException(nameof(initialPosition));
-        Metadata = metadata ?? new GameMetadata();
-        Result = GameResult.Ongoing;
-    }
+    public GameResult Result { get; private set; } = GameResult.Ongoing;
 
     public static ChessGame CreateStandard()
     {
