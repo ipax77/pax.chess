@@ -44,4 +44,42 @@ public sealed class ValidationTests
         Assert.AreEqual(MoveState.TargetInvalid, moveState);
     }
 
+    [TestMethod]
+    public void Fen_Checkmate()
+    {
+        string fen = "2r3k1/6pp/p3pp1B/2bn4/2pK3P/3b1PR1/P7/3R4 w - - 2 31";
+        var pos = FenSerializer.Parse(fen);
+        var result = MoveValidator.GetGameState(pos);
+        Assert.AreEqual(GameState.Checkmate, result);
+    }
+    
+    [TestMethod]
+    public void Fen_Stalemate()
+    {
+        // Classic stalemate - black king has no legal moves but is not in check
+        string fen = "5k2/5P2/5K2/8/8/8/8/8 b - - 0 1";
+        var pos = FenSerializer.Parse(fen);
+        var result = MoveValidator.GetGameState(pos);
+        Assert.AreEqual(GameState.Stalemate, result);
+    }
+
+    [TestMethod]
+    public void Fen_Check()
+    {
+        // King is in check but has escape moves
+        string fen = "4k3/8/4r3/8/8/8/8/4K3 w - - 0 1";
+        var pos = FenSerializer.Parse(fen);
+        var result = MoveValidator.GetGameState(pos);
+        Assert.AreEqual(GameState.Check, result);
+    }
+
+    [TestMethod]
+    public void Fen_Normal()
+    {
+        // Starting position - nothing special
+        string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        var pos = FenSerializer.Parse(fen);
+        var result = MoveValidator.GetGameState(pos);
+        Assert.AreEqual(GameState.Normal, result);
+    }
 }
