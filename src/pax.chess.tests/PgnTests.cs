@@ -14,6 +14,37 @@ public sealed class PgnTests
     }
 
     [TestMethod]
+    public void CanParseLichess()
+    {
+        var pgn = @"[Event ""rated blitz game""]
+[Site ""https://lichess.org/SZf3wQqU""]
+[Date ""2026.02.27""]
+[Round ""-""]
+[White ""pax77""]
+[Black ""Trollernot""]
+[Result ""1-0""]
+[GameId ""SZf3wQqU""]
+[UTCDate ""2026.02.27""]
+[UTCTime ""12:13:04""]
+[WhiteElo ""2062""]
+[BlackElo ""1999""]
+[WhiteRatingDiff ""+4""]
+[BlackRatingDiff ""-4""]
+[Variant ""Standard""]
+[TimeControl ""180+2""]
+[ECO ""B23""]
+[Opening ""Sicilian Defense: Closed, Chameleon Variation""]
+[Termination ""Normal""]
+
+1. e4 c5 2. Ne2 Nc6 3. Nbc3 Nf6 4. g3 d6 5. Bg2 g6 6. d3 Bg7 7. h3 O-O 8. O-O a6 9. f4 b5 10. Be3 Bb7 11. Qd2 Qb6 12. Rae1 a5 13. Kh2 a4 14. Nd5 Nxd5 15. exd5 Nd4 16. c3 Nxe2 17. Rxe2 Rfc8 18. f5 b4 19. Bh6 bxc3 20. bxc3 a3 21. Bxg7 Kxg7 22. Qg5 Re8 23. f6+ Kg8 24. fxe7 f5 25. Rxf5 1-0
+";
+        var game = PgnSerializer.Parse(pgn);
+
+        var moves = game.Moves;
+        Assert.HasCount(49, moves);
+    }
+
+    [TestMethod]
     public void CanParseLichessCommented()
     {
         var pgn = @"[Event ""rated blitz game""]

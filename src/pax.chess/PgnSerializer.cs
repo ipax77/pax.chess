@@ -62,7 +62,7 @@ public static partial class PgnSerializer
         } while (annotation.Success);
 
         // {} comments
-        Match comment = AnnotationRegex().Match(cleanPgn);
+        Match comment = CommentRegex().Match(cleanPgn);
         Dictionary<string, int> comments = [];
         do
         {
@@ -141,12 +141,12 @@ public static partial class PgnSerializer
         if (move == "0-0" || move == "O-O" || move == "o-o")
         {
             var kingSquare = pos.Board.GetKingSquare(color);
-            return new Move(kingSquare, new Square(kingSquare.File + 2, kingSquare.Rank), PieceType.None, MoveType.CastlingKingSide);
+            return new Move(kingSquare, new Square(kingSquare.File + 2, kingSquare.Rank), null, MoveType.CastlingKingSide);
         }
         if (move == "0-0-0" || move == "O-O-O" || move == "o-o-o")
         {
             var kingSquare = pos.Board.GetKingSquare(color);
-            return new Move(kingSquare, new Square(kingSquare.File - 2, kingSquare.Rank), PieceType.None, MoveType.CastlingQueenSide);
+            return new Move(kingSquare, new Square(kingSquare.File - 2, kingSquare.Rank), null, MoveType.CastlingQueenSide);
         }
 
         if (move.EndsWith("?!", StringComparison.Ordinal))
