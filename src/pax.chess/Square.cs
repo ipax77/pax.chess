@@ -24,7 +24,5 @@ public readonly record struct Square
     public int File => _index & 7;   // index % 8
     public int Rank => _index >> 3;  // index / 8
 
-    public static Square FromIndex(int index) => new Square(index);
-
     public override string ToString() => $"{(char)('a' + File)}{Rank + 1}";
 }

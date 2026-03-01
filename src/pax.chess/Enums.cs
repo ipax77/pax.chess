@@ -42,3 +42,23 @@ public enum GameResult
     BlackWin,
     Draw
 }
+
+public enum MoveState
+{
+    Ok,
+    PieceNotFound,
+    WrongColor,
+    NoValidMoves,
+    TargetInvalid,
+    CastleNotAllowed,
+    CastlingPathAttacked,
+    WouldBeCheck,
+}
+
+public enum GameState
+{
+    Normal,
+    Check,
+    Checkmate,
+    Stalemate,
+}

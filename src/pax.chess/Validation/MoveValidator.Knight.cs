@@ -3,16 +3,12 @@ namespace pax.chess.Validation;
 
 public static partial class MoveValidator
 {
-    private static readonly int[][] knightDeltas =
+    private static readonly (int FileDelta, int RankDelta)[] knightDeltas =
     [
-        [2, 1],
-        [2, -1],
-        [-2, 1],
-        [-2, -1],
-        [1, 2],
-        [1, -2],
-        [-1, 2],
-        [-1, -2]
+        ( 2,  1), ( 2, -1),
+        (-2,  1), (-2, -1),
+        ( 1,  2), ( 1, -2),
+        (-1,  2), (-1, -2)
     ];
 
     private static List<Square> GetKnightMoves(Square from, BoardPosition pos)
@@ -24,10 +20,10 @@ public static partial class MoveValidator
 
         var moves = new List<Square>(8);
 
-        foreach (var delta in knightDeltas)
+        foreach (var (fileDelta, rankDelta) in knightDeltas)
         {
-            int newFile = from.File + delta[0];
-            int newRank = from.Rank + delta[1];
+            int newFile = from.File + fileDelta;
+            int newRank = from.Rank + rankDelta;
 
             if (newFile < 0 || newFile > 7 ||
                 newRank < 0 || newRank > 7)

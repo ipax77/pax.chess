@@ -3,12 +3,9 @@ namespace pax.chess.Validation;
 
 public static partial class MoveValidator
 {
-    private static readonly int[][] rookDeltas =
+    private static readonly (int FileDelta, int RankDelta)[] rookDeltas =
     [
-        [0, 1],
-        [0, -1],
-        [1, 0],
-        [-1, 0]
+        (0, 1), (0, -1), (1, 0), (-1, 0)
     ];
 
     private static List<Square> GetRookMoves(Square from, BoardPosition pos)

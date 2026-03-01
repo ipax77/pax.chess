@@ -3,12 +3,9 @@ namespace pax.chess.Validation;
 
 public static partial class MoveValidator
 {
-    private static readonly int[][] bishopDeltas =
+    private static readonly (int FileDelta, int RankDelta)[] bishopDeltas =
     [
-        [1, 1],
-        [1, -1],
-        [-1, 1],
-        [-1, -1]
+        (1, 1), (1, -1), (-1, 1), (-1, -1)
     ];
 
     private static List<Square> GetBishopMoves(Square from, BoardPosition pos)

@@ -37,8 +37,22 @@ public static partial class MoveValidator
                 }
             }
         }
+        moves.AddRange(GetPawnAttackMoves(from, pos, piece));
+        return moves;
+    }
 
-        // --- Captures ---
+    private static List<Square> GetPawnAttackMoves(Square from, BoardPosition pos, Piece? piece = null)
+    {
+        if (piece == null)
+        {
+            piece = pos.Board[from.Index];
+
+            if (!piece.HasValue || piece.Value.Type != PieceType.Pawn)
+                return [];
+        }
+        var moves = new List<Square>(2);
+        int direction = piece.Value.Color == PieceColor.White ? 1 : -1;
+
         foreach (int fileDelta in new[] { -1, 1 })
         {
             int newFile = from.File + fileDelta;
@@ -66,7 +80,6 @@ public static partial class MoveValidator
                 moves.Add(target);
             }
         }
-
         return moves;
     }
 }

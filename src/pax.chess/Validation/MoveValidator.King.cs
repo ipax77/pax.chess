@@ -3,16 +3,10 @@ namespace pax.chess.Validation;
 
 public static partial class MoveValidator
 {
-    private static readonly int[][] kingDeltas =
+    private static readonly (int FileDelta, int RankDelta)[] kingDeltas =
     [
-        [0, 1],
-        [0, -1],
-        [1, 0],
-        [-1, 0],
-        [1, 1],
-        [1, -1],
-        [-1, 1],
-        [-1, -1]
+        (0, 1), (0, -1), (1, 0), (-1, 0),
+        (1, 1), (1, -1), (-1, 1), (-1, -1),
     ];
 
     private static List<Square> GetKingMoves(Square from, BoardPosition pos)
@@ -24,10 +18,10 @@ public static partial class MoveValidator
 
         var moves = new List<Square>(8);
 
-        foreach (var delta in knightDeltas)
+        foreach (var (fileDelta, rankDelta) in kingDeltas)
         {
-            int newFile = from.File + delta[0];
-            int newRank = from.Rank + delta[1];
+            int newFile = from.File + fileDelta;
+            int newRank = from.Rank + rankDelta;
 
             if (newFile < 0 || newFile > 7 ||
                 newRank < 0 || newRank > 7)
@@ -49,7 +43,7 @@ public static partial class MoveValidator
                 var p2 = pos.Board[new Square(6, 7).Index];
                 if (!p1.HasValue && !p2.HasValue)
                     moves.Add(new Square(6, 7));
-                
+
             }
             if (pos.CastlingRights.HasFlag(CastlingRights.BlackQueenSide))
             {
@@ -57,7 +51,7 @@ public static partial class MoveValidator
                 var p2 = pos.Board[new Square(2, 7).Index];
                 var p3 = pos.Board[new Square(3, 7).Index];
                 if (!p1.HasValue && !p2.HasValue && !p3.HasValue)
-                    moves.Add(new Square(2, 7));                    
+                    moves.Add(new Square(2, 7));
             }
         }
         else
@@ -68,7 +62,7 @@ public static partial class MoveValidator
                 var p2 = pos.Board[new Square(6, 0).Index];
                 if (!p1.HasValue && !p2.HasValue)
                     moves.Add(new Square(6, 0));
-                
+
             }
             if (pos.CastlingRights.HasFlag(CastlingRights.WhiteQueenSide))
             {
@@ -76,7 +70,7 @@ public static partial class MoveValidator
                 var p2 = pos.Board[new Square(2, 0).Index];
                 var p3 = pos.Board[new Square(3, 0).Index];
                 if (!p1.HasValue && !p2.HasValue && !p3.HasValue)
-                    moves.Add(new Square(2, 0));                    
+                    moves.Add(new Square(2, 0));
             }
         }
         return moves;
