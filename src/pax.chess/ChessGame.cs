@@ -1,21 +1,22 @@
 
 namespace pax.chess;
 
-public sealed class ChessGame(BoardPosition initialPosition, GameMetadata metadata)
+public sealed class ChessGame(BoardPosition initialPosition, GameMetadata metadata, ChessClock? clock = null)
 {
     public BoardPosition CurrentPosition { get; private set; } = initialPosition 
         ?? throw new ArgumentNullException(nameof(initialPosition));
 
-    public IReadOnlyList<Move> Moves => _moves.AsReadOnly();
-    private readonly List<Move> _moves = [];
+    public IReadOnlyList<MoveInfo> Moves => _moves.AsReadOnly();
+    private readonly List<MoveInfo> _moves = [];
 
     public GameMetadata Metadata { get; } = metadata ?? new GameMetadata();
+    public ChessClock? Clock { get; } = clock;
 
     public GameResult Result { get; private set; } = GameResult.Ongoing;
 
-    public static ChessGame CreateStandard()
+    public static ChessGame CreateStandard(ChessClock? clock = null)
     {
-        return new ChessGame(BoardPosition.CreateInitial(), new GameMetadata());
+        return new ChessGame(BoardPosition.CreateInitial(), new GameMetadata(), clock);
     }
 
     public void ApplyMove(Move move, IMoveValidator? validator = null)
@@ -23,10 +24,24 @@ public sealed class ChessGame(BoardPosition initialPosition, GameMetadata metada
         if (validator != null && !validator.IsLegal(CurrentPosition, move))
             throw new InvalidOperationException("Illegal move.");
 
+        var color = CurrentPosition.SideToMove;
+        TimeSpan? remaining = null;
+        
+        if (Clock != null)
+        {
+            Clock.ApplyMove(color);
+            remaining = color == PieceColor.White ? Clock.WhiteTime : Clock.BlackTime;
+        }
+
         CurrentPosition = CurrentPosition.MakeMove(move);
-        _moves.Add(move);
+        _moves.Add(new MoveInfo(move, remaining));
     }
 }
+
+public sealed record MoveInfo(
+    Move Move,
+    TimeSpan? TimeRemaining = null
+);
 
 public sealed record Move(
     Square From,

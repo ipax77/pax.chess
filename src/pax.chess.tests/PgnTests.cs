@@ -94,8 +94,21 @@ public sealed class PgnTests
         Assert.HasCount(game.Moves.Count, reParsed.Moves);
         for (int i = 0; i < game.Moves.Count; i++)
         {
-            Assert.AreEqual(game.Moves[i].From, reParsed.Moves[i].From);
-            Assert.AreEqual(game.Moves[i].To, reParsed.Moves[i].To);
+            Assert.AreEqual(game.Moves[i].Move.From, reParsed.Moves[i].Move.From);
+            Assert.AreEqual(game.Moves[i].Move.To, reParsed.Moves[i].Move.To);
         }
+    }
+
+    [TestMethod]
+    public void CanTrackClock()
+    {
+        var clock = new ChessClock(TimeSpan.FromMinutes(3), TimeSpan.Zero);
+        var game = ChessGame.CreateStandard(clock);
+        
+        var move = new Move(new Square(4, 1), new Square(4, 3)); // e2e4
+        game.ApplyMove(move);
+        
+        Assert.IsNotNull(game.Moves[0].TimeRemaining);
+        Assert.IsTrue(game.Moves[0].TimeRemaining <= TimeSpan.FromMinutes(3));
     }
 }

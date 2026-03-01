@@ -276,7 +276,8 @@ public static partial class PgnSerializer
 
         for (int i = 0; i < game.Moves.Count; i++)
         {
-            var move = game.Moves[i];
+            var moveInfo = game.Moves[i];
+            var move = moveInfo.Move;
             if (i % 2 == 0)
             {
                 moveCount++;
@@ -284,6 +285,12 @@ public static partial class PgnSerializer
             }
 
             sb.Append(ToSan(move, currentPos));
+            
+            if (moveInfo.TimeRemaining.HasValue)
+            {
+                sb.Append(CultureInfo.InvariantCulture, $" {{ [%clk {moveInfo.TimeRemaining.Value:h\\:mm\\:ss}] }}");
+            }
+
             sb.Append(' ');
 
             currentPos = currentPos.MakeMove(move);
