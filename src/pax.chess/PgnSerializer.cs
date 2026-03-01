@@ -250,8 +250,149 @@ public static partial class PgnSerializer
 
     public static string Serialize(ChessGame game)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(game);
+
+        StringBuilder sb = new();
+
+        // 1. Tags
+        sb.AppendLine(CultureInfo.InvariantCulture, $"[Event \"{game.Metadata.Event ?? "?"}\"]");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"[Site \"{game.Metadata.Site ?? "?"}\"]");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"[Date \"{game.Metadata.Date?.ToString("yyyy.MM.dd", CultureInfo.InvariantCulture) ?? "????.??.??"}\"]");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"[Round \"{game.Metadata.Round ?? "?"}\"]");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"[White \"{game.Metadata.White ?? "?"}\"]");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"[Black \"{game.Metadata.Black ?? "?"}\"]");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"[Result \"{ResultToString(game.Result)}\"]");
+
+        foreach (var tag in game.Metadata.AdditionalTags)
+        {
+            sb.AppendLine(CultureInfo.InvariantCulture, $"[{tag.Key} \"{tag.Value}\"]");
+        }
+
+        sb.AppendLine();
+
+        // 2. Moves
+        var currentPos = BoardPosition.CreateInitial(); // Assuming we start from initial position for PGN
+        int moveCount = 0;
+
+        for (int i = 0; i < game.Moves.Count; i++)
+        {
+            var move = game.Moves[i];
+            if (i % 2 == 0)
+            {
+                moveCount++;
+                sb.Append(CultureInfo.InvariantCulture, $"{moveCount}. ");
+            }
+
+            sb.Append(ToSan(move, currentPos));
+            sb.Append(' ');
+
+            currentPos = currentPos.MakeMove(move);
+        }
+
+        sb.Append(ResultToString(game.Result));
+
+        return sb.ToString();
     }
+
+    private static string ResultToString(GameResult result)
+    {
+        return result switch
+        {
+            GameResult.WhiteWin => "1-0",
+            GameResult.BlackWin => "0-1",
+            GameResult.Draw => "1/2-1/2",
+            _ => "*"
+        };
+    }
+
+    private static string ToSan(Move move, BoardPosition pos)
+    {
+        var piece = pos.Board[move.From.Index] ?? throw new InvalidOperationException("No piece at from square");
+
+        if (move.MoveType.HasFlag(MoveType.CastlingKingSide))
+            return "O-O" + GetCheckSuffix(move, pos);
+        if (move.MoveType.HasFlag(MoveType.CastlingQueenSide))
+            return "O-O-O" + GetCheckSuffix(move, pos);
+
+        StringBuilder sb = new();
+        if (piece.Type != PieceType.Pawn)
+        {
+            sb.Append(GetPieceChar(piece.Type));
+
+            // Disambiguation
+            var ambassadors = pos.Board.GetPieces(piece.Color)
+                .Where(p => p.Piece.Type == piece.Type && p.Square != move.From);
+
+            bool needsFile = false;
+            bool needsRank = false;
+            bool ambiguous = false;
+
+            foreach (var amb in ambassadors)
+            {
+                var moves = MoveValidator.GetValidMoves(amb.Square, pos, out _);
+                if (moves.Any(m => m.To == move.To))
+                {
+                    ambiguous = true;
+                    if (amb.Square.File == move.From.File) needsRank = true;
+                    else needsFile = true;
+                }
+            }
+
+            if (ambiguous)
+            {
+                if (needsFile) sb.Append((char)('a' + move.From.File));
+                if (needsRank) sb.Append(move.From.Rank + 1);
+            }
+        }
+
+        if (pos.Board[move.To.Index].HasValue || move.MoveType.HasFlag(MoveType.EnPassant))
+        {
+            if (piece.Type == PieceType.Pawn)
+            {
+                sb.Append((char)('a' + move.From.File));
+            }
+            sb.Append('x');
+        }
+
+        sb.Append((char)('a' + move.To.File));
+        sb.Append(move.To.Rank + 1);
+
+        if (move.Promotion.HasValue)
+        {
+            sb.Append('=');
+            sb.Append(GetPieceChar(move.Promotion.Value));
+        }
+
+        sb.Append(GetCheckSuffix(move, pos));
+
+        return sb.ToString();
+    }
+
+    private static string GetCheckSuffix(Move move, BoardPosition pos)
+    {
+        var nextPos = pos.MakeMove(move);
+        var state = MoveValidator.GetGameState(nextPos);
+        return state switch
+        {
+            GameState.Checkmate => "#",
+            GameState.Check => "+",
+            _ => ""
+        };
+    }
+
+    private static char GetPieceChar(PieceType type)
+    {
+        return type switch
+        {
+            PieceType.Knight => 'N',
+            PieceType.Bishop => 'B',
+            PieceType.Rook => 'R',
+            PieceType.Queen => 'Q',
+            PieceType.King => 'K',
+            _ => ' '
+        };
+    }
+
 
     [GeneratedRegex(@"((\r)+)?(\n)+((\r)+)?")]
     private static partial Regex LineRegex();

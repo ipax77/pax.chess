@@ -75,4 +75,27 @@ public sealed class PgnTests
         var moves = game.Moves;
         Assert.HasCount(49, moves);
     }
+
+    [TestMethod]
+    public void CanSerializeSimplePgn()
+    {
+        string pgn = "1. f4 e6 2. g4 Qh4#";
+        var game = PgnSerializer.Parse(pgn);
+        game.Metadata.White = "WhitePlayer";
+        game.Metadata.Black = "BlackPlayer";
+        
+        var serialized = PgnSerializer.Serialize(game);
+        
+        Assert.Contains("[White \"WhitePlayer\"]", serialized);
+        Assert.Contains("[Black \"BlackPlayer\"]", serialized);
+        Assert.Contains("1. f4 e6 2. g4 Qh4#", serialized);
+        
+        var reParsed = PgnSerializer.Parse(serialized);
+        Assert.HasCount(game.Moves.Count, reParsed.Moves);
+        for (int i = 0; i < game.Moves.Count; i++)
+        {
+            Assert.AreEqual(game.Moves[i].From, reParsed.Moves[i].From);
+            Assert.AreEqual(game.Moves[i].To, reParsed.Moves[i].To);
+        }
+    }
 }
