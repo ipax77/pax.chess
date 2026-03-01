@@ -196,7 +196,7 @@ public static class FenSerializer
         return sb.ToString();
     }
 
-    private static PieceType GetPieceType(char c)
+    public static PieceType GetPieceType(char c)
     {
         return c switch
         {
@@ -230,7 +230,7 @@ public static class FenSerializer
         };
     }
 
-    private static Char GetCharColumn(int x)
+    private static char GetCharColumn(int x)
     {
         return x switch
         {
@@ -246,7 +246,7 @@ public static class FenSerializer
         };
     }
 
-    private static int GetColumnIndex(char x)
+    public static int GetColumnIndex(char x)
     {
         return x switch
         {

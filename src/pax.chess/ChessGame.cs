@@ -3,7 +3,8 @@ namespace pax.chess;
 
 public sealed class ChessGame(BoardPosition initialPosition, GameMetadata metadata)
 {
-    public BoardPosition CurrentPosition { get; private set; } = initialPosition ?? throw new ArgumentNullException(nameof(initialPosition));
+    public BoardPosition CurrentPosition { get; private set; } = initialPosition 
+        ?? throw new ArgumentNullException(nameof(initialPosition));
 
     public IReadOnlyList<Move> Moves => _moves.AsReadOnly();
     private readonly List<Move> _moves = [];
