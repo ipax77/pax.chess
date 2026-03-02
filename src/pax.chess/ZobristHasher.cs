@@ -66,6 +66,9 @@ public sealed class ZobristHasher : IPositionHasher
         if (previous.EnPassantTarget is not null)
             key ^= Zobrist.EnPassantFile[previous.EnPassantTarget.Value.File];
 
+        if (nextPos.EnPassantTarget is not null)
+            key ^= Zobrist.EnPassantFile[nextPos.EnPassantTarget.Value.File];
+
         int newPieceIndex = move.Promotion.HasValue
             ? (int)move.Promotion.Value
             : (int)movingPiece.Value.Type;
