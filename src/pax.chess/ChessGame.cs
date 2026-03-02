@@ -3,22 +3,56 @@ using pax.chess.Validation;
 
 namespace pax.chess;
 
-public sealed class ChessGame(BoardPosition initialPosition, GameMetadata metadata, ChessClock? clock = null)
+public sealed class ChessGame
 {
-    public BoardPosition CurrentPosition { get; private set; } = initialPosition
-        ?? throw new ArgumentNullException(nameof(initialPosition));
+    public BoardPosition CurrentPosition { get; private set; }
 
     public IReadOnlyList<MoveInfo> Moves => _moves.AsReadOnly();
     private readonly List<MoveInfo> _moves = [];
 
-    public GameMetadata Metadata { get; } = metadata ?? new GameMetadata();
-    public ChessClock? Clock { get; } = clock;
+    public GameMetadata Metadata { get; private set; }
+    public ChessClock? Clock { get; private set; }
 
-    public GameResult Result => GameOutcomeEvaluator.Evaluate(CurrentPosition, _moves);
+    public GameResult Result => GameOutcomeEvaluator.Evaluate(CurrentPosition, _moves, _repetition);
+    private IPositionHasher? positionHasher;
+    private readonly Dictionary<ulong, int> _repetition = [];
+    private ulong _currentKey;
 
-    public static ChessGame CreateStandard(ChessClock? clock = null)
+    public ChessGame()
     {
-        return new ChessGame(BoardPosition.CreateInitial(), new GameMetadata(), clock);
+        CurrentPosition = BoardPosition.CreateInitial();
+        Metadata = new();
+    }
+
+    public ChessGame(BoardPosition initialPosition, GameMetadata metadata, ChessClock? clock = null)
+    {
+        CurrentPosition = initialPosition;
+        Metadata = metadata;
+        Clock = clock;
+    }
+
+    public void SetMetadata(GameMetadata metadata)
+    {
+        Metadata = metadata;
+    }
+
+    public void SetClock(ChessClock clock)
+    {
+        Clock = clock;
+    }
+
+    public void ActivatePositionHashing(IPositionHasher? positionHasher = null)
+    {
+        if (positionHasher is null)
+        {
+            this.positionHasher = new ZobristHasher();
+        }
+        else
+        {
+            this.positionHasher = positionHasher;
+        }
+        _currentKey = this.positionHasher.Compute(CurrentPosition);
+        _repetition.Add(_currentKey, 1);
     }
 
     public MoveState TryApplyMove(Move move)
@@ -43,106 +77,26 @@ public sealed class ChessGame(BoardPosition initialPosition, GameMetadata metada
             remaining = color == PieceColor.White ? Clock.WhiteTime : Clock.BlackTime;
         }
 
-        CurrentPosition = CurrentPosition.MakeMove(move);
+        var next = CurrentPosition.MakeMove(move);
         _moves.Add(new MoveInfo(move, remaining));
+
+        if (positionHasher is not null)
+        {
+            _currentKey = positionHasher.Update(_currentKey, CurrentPosition, move, next);
+            _repetition.TryGetValue(_currentKey, out var count);
+            _repetition[_currentKey] = count + 1;
+        }
+        CurrentPosition = next;
     }
-}
 
-public interface IPositionHasher
-{
-    ulong Compute(BoardPosition position);
-
-    ulong Update(
-        ulong previousKey,
-        BoardPosition previous,
-        Move move,
-        BoardPosition nextPos);
-}
-
-public sealed class ZobristHasher : IPositionHasher
-{
-    public ulong Compute(BoardPosition position)
+    public int GetCurrentRepetitions()
     {
-        return Zobrist.Compute(position);
+        if (_repetition.TryGetValue(_currentKey, out var count))
+        {
+            return count;
+        }
+        return 0;
     }
 
-    public ulong Update(
-        ulong previousKey,
-        BoardPosition previous,
-        Move move,
-        BoardPosition nextPos)
-    {
-        ArgumentNullException.ThrowIfNull(previous);
-        ArgumentNullException.ThrowIfNull(move);
-        ArgumentNullException.ThrowIfNull(nextPos);
-
-        ulong key = previousKey;
-        var movingPiece = previous.Board[move.From.Index];
-        if (!movingPiece.HasValue)
-        {
-            return previousKey;
-        }
-        var targetPiece = previous.Board[move.To.Index];
-
-        var colorIndex = movingPiece.Value.Color == PieceColor.White ? 0 : 1;
-        var pieceIndex = (int)movingPiece.Value.Type;
-
-        key ^= Zobrist.SideToMove;
-        key ^= Zobrist.PieceSquare[colorIndex][pieceIndex][move.From.Index];
-
-        if (targetPiece.HasValue)
-        {
-            var capturedColor = targetPiece.Value.Color == PieceColor.White ? 0 : 1;
-            var capturedType = (int)targetPiece.Value.Type;
-
-            key ^= Zobrist.PieceSquare[capturedColor][capturedType][move.To.Index];
-        }
-
-        if (move.MoveType == MoveType.EnPassant)
-        {
-            int captureSquare = movingPiece.Value.Color == PieceColor.White
-                ? move.To.Index - 8
-                : move.To.Index + 8;
-
-            int capturedColor = movingPiece.Value.Color == PieceColor.White ? 1 : 0;
-
-            key ^= Zobrist.PieceSquare[capturedColor][(int)PieceType.Pawn][captureSquare];
-        }
-
-        key ^= Zobrist.Castling[(int)previous.CastlingRights];
-
-        if (previous.EnPassantTarget is not null)
-            key ^= Zobrist.EnPassantFile[previous.EnPassantTarget.Value.File];
-
-        int newPieceIndex = move.Promotion.HasValue
-            ? (int)move.Promotion.Value
-            : (int)movingPiece.Value.Type;
-        key ^= Zobrist.PieceSquare[colorIndex][newPieceIndex][move.To.Index];
-
-        key ^= Zobrist.Castling[(int)nextPos.CastlingRights];
-
-        if (move.MoveType == MoveType.CastlingKingSide ||
-            move.MoveType == MoveType.CastlingQueenSide)
-        {
-            bool isWhite = movingPiece.Value.Color == PieceColor.White;
-            int rookRank = isWhite ? 0 : 7;
-
-            int rookFromFile = move.MoveType == MoveType.CastlingKingSide ? 7 : 0;
-            int rookToFile = move.MoveType == MoveType.CastlingKingSide ? 5 : 3;
-
-            int rookFromIndex = (rookRank << 3) | rookFromFile;
-            int rookToIndex = (rookRank << 3) | rookToFile;
-
-            int rookColorIndex = colorIndex;
-            int rookPieceIndex = (int)PieceType.Rook;
-
-            // Remove rook from original square
-            key ^= Zobrist.PieceSquare[rookColorIndex][rookPieceIndex][rookFromIndex];
-
-            // Add rook to new square
-            key ^= Zobrist.PieceSquare[rookColorIndex][rookPieceIndex][rookToIndex];
-        }
-
-        return key;
-    }
+    public ulong CurrentHash => _currentKey;
 }

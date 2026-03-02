@@ -8,11 +8,13 @@ namespace pax.chess;
 
 public static partial class PgnSerializer
 {
-    public static ChessGame Parse(string pgn)
+    public static ChessGame Parse(string pgn, IPositionHasher? positionHasher = null)
     {
         BoardPosition pos = BoardPosition.CreateInitial();
         GameMetadata metadata = new();
         ChessGame game = new(pos, metadata);
+
+        game.ActivatePositionHashing(positionHasher);
 
         var pgnLines = LineRegex().Split(pgn)
             .Select(s => s.Trim())

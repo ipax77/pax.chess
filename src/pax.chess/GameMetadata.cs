@@ -10,5 +10,5 @@ public sealed class GameMetadata
     public string? Black { get; set; }
     public string? Annotator { get; set; }
 
-    public Dictionary<string, string> AdditionalTags { get; } = new();
+    public Dictionary<string, string> AdditionalTags { get; } = [];
 }

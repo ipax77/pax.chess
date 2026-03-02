@@ -5,12 +5,18 @@ namespace pax.chess;
 
 internal static class GameOutcomeEvaluator
 {
-    internal static GameResult Evaluate(BoardPosition position, IReadOnlyList<MoveInfo> moves)
+    internal static GameResult Evaluate(BoardPosition position, IReadOnlyList<MoveInfo> moves, Dictionary<ulong, int> repetition)
     {
-        if (position.HalfmoveClock >= 50)
+        if (position.HalfmoveClock >= 75)
         {
             return GameResult.Draw;
         }
+
+        if (repetition.Count > 0 && repetition.Values.Max() >= 7)
+        {
+            return GameResult.Draw;
+        }
+
         var gameState = MoveValidator.GetGameState(position);
 
         if (gameState == GameState.Checkmate)
