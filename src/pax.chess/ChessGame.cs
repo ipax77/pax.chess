@@ -1,9 +1,11 @@
 
+using pax.chess.Validation;
+
 namespace pax.chess;
 
 public sealed class ChessGame(BoardPosition initialPosition, GameMetadata metadata, ChessClock? clock = null)
 {
-    public BoardPosition CurrentPosition { get; private set; } = initialPosition 
+    public BoardPosition CurrentPosition { get; private set; } = initialPosition
         ?? throw new ArgumentNullException(nameof(initialPosition));
 
     public IReadOnlyList<MoveInfo> Moves => _moves.AsReadOnly();
@@ -12,21 +14,29 @@ public sealed class ChessGame(BoardPosition initialPosition, GameMetadata metada
     public GameMetadata Metadata { get; } = metadata ?? new GameMetadata();
     public ChessClock? Clock { get; } = clock;
 
-    public GameResult Result { get; private set; } = GameResult.Ongoing;
+    public GameResult Result => GameOutcomeEvaluator.Evaluate(CurrentPosition, _moves);
 
     public static ChessGame CreateStandard(ChessClock? clock = null)
     {
         return new ChessGame(BoardPosition.CreateInitial(), new GameMetadata(), clock);
     }
 
-    public void ApplyMove(Move move, IMoveValidator? validator = null)
+    public MoveState TryApplyMove(Move move)
     {
-        if (validator != null && !validator.IsLegal(CurrentPosition, move))
-            throw new InvalidOperationException("Illegal move.");
+        var state = MoveValidator.IsValidMove(move, CurrentPosition);
+        if (state != MoveState.Ok)
+        {
+            return state;
+        }
+        ApplyMove(move);
+        return state;
+    }
 
+    public void ApplyMove(Move move)
+    {
         var color = CurrentPosition.SideToMove;
         TimeSpan? remaining = null;
-        
+
         if (Clock != null)
         {
             Clock.ApplyMove(color);
@@ -38,33 +48,101 @@ public sealed class ChessGame(BoardPosition initialPosition, GameMetadata metada
     }
 }
 
-public sealed record MoveInfo(
-    Move Move,
-    TimeSpan? TimeRemaining = null
-);
-
-public sealed record Move(
-    Square From,
-    Square To,
-    PieceType? Promotion = null,
-    MoveType MoveType = MoveType.None
-);
-
-public sealed class GameMetadata
+public interface IPositionHasher
 {
-    public string? Event { get; set; }
-    public string? Site { get; set; }
-    public DateTime? Date { get; set; }
-    public string? Round { get; set; }
-    public string? White { get; set; }
-    public string? Black { get; set; }
-    public string? Annotator { get; set; }
+    ulong Compute(BoardPosition position);
 
-    public Dictionary<string, string> AdditionalTags { get; } = new();
+    ulong Update(
+        ulong previousKey,
+        BoardPosition previous,
+        Move move,
+        BoardPosition nextPos);
 }
 
-public interface IMoveValidator
+public sealed class ZobristHasher : IPositionHasher
 {
-    bool IsLegal(BoardPosition position, Move move);
-    IEnumerable<Move> GenerateLegalMoves(BoardPosition position);
+    public ulong Compute(BoardPosition position)
+    {
+        return Zobrist.Compute(position);
+    }
+
+    public ulong Update(
+        ulong previousKey,
+        BoardPosition previous,
+        Move move,
+        BoardPosition nextPos)
+    {
+        ArgumentNullException.ThrowIfNull(previous);
+        ArgumentNullException.ThrowIfNull(move);
+        ArgumentNullException.ThrowIfNull(nextPos);
+
+        ulong key = previousKey;
+        var movingPiece = previous.Board[move.From.Index];
+        if (!movingPiece.HasValue)
+        {
+            return previousKey;
+        }
+        var targetPiece = previous.Board[move.To.Index];
+
+        var colorIndex = movingPiece.Value.Color == PieceColor.White ? 0 : 1;
+        var pieceIndex = (int)movingPiece.Value.Type;
+
+        key ^= Zobrist.SideToMove;
+        key ^= Zobrist.PieceSquare[colorIndex][pieceIndex][move.From.Index];
+
+        if (targetPiece.HasValue)
+        {
+            var capturedColor = targetPiece.Value.Color == PieceColor.White ? 0 : 1;
+            var capturedType = (int)targetPiece.Value.Type;
+
+            key ^= Zobrist.PieceSquare[capturedColor][capturedType][move.To.Index];
+        }
+
+        if (move.MoveType == MoveType.EnPassant)
+        {
+            int captureSquare = movingPiece.Value.Color == PieceColor.White
+                ? move.To.Index - 8
+                : move.To.Index + 8;
+
+            int capturedColor = movingPiece.Value.Color == PieceColor.White ? 1 : 0;
+
+            key ^= Zobrist.PieceSquare[capturedColor][(int)PieceType.Pawn][captureSquare];
+        }
+
+        key ^= Zobrist.Castling[(int)previous.CastlingRights];
+
+        if (previous.EnPassantTarget is not null)
+            key ^= Zobrist.EnPassantFile[previous.EnPassantTarget.Value.File];
+
+        int newPieceIndex = move.Promotion.HasValue
+            ? (int)move.Promotion.Value
+            : (int)movingPiece.Value.Type;
+        key ^= Zobrist.PieceSquare[colorIndex][newPieceIndex][move.To.Index];
+
+        key ^= Zobrist.Castling[(int)nextPos.CastlingRights];
+
+        if (move.MoveType == MoveType.CastlingKingSide ||
+            move.MoveType == MoveType.CastlingQueenSide)
+        {
+            bool isWhite = movingPiece.Value.Color == PieceColor.White;
+            int rookRank = isWhite ? 0 : 7;
+
+            int rookFromFile = move.MoveType == MoveType.CastlingKingSide ? 7 : 0;
+            int rookToFile = move.MoveType == MoveType.CastlingKingSide ? 5 : 3;
+
+            int rookFromIndex = (rookRank << 3) | rookFromFile;
+            int rookToIndex = (rookRank << 3) | rookToFile;
+
+            int rookColorIndex = colorIndex;
+            int rookPieceIndex = (int)PieceType.Rook;
+
+            // Remove rook from original square
+            key ^= Zobrist.PieceSquare[rookColorIndex][rookPieceIndex][rookFromIndex];
+
+            // Add rook to new square
+            key ^= Zobrist.PieceSquare[rookColorIndex][rookPieceIndex][rookToIndex];
+        }
+
+        return key;
+    }
 }

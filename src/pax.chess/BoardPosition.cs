@@ -48,6 +48,8 @@ public sealed class BoardPosition(
         var newHalfmoveClock = ComputeHalfmoveClock(movingPiece, isCapture);
         var newFullmoveNumber = ComputeFullmoveNumber();
 
+
+
         return new BoardPosition(
             newBoard,
             SideToMove == PieceColor.White ? PieceColor.Black : PieceColor.White,
