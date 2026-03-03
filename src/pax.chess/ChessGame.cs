@@ -42,6 +42,19 @@ public sealed class ChessGame
         Clock = clock;
     }
 
+    public void Evaluate()
+    {
+        var evaluated = GameOutcomeEvaluator.Evaluate(CurrentPosition, _moves, _repetition);
+
+        if (evaluated is not null)
+        {
+            Conclusion = new GameConclusion(
+                evaluated.Termination,
+                evaluated.Result
+            );
+        }
+    }
+
     public void ActivatePositionHashing(IPositionHasher? hasher = null)
     {
         if (positionHasher is not null)
@@ -53,10 +66,24 @@ public sealed class ChessGame
     }
 
     /// <summary>
-    /// Validate Move and execute only when valid.
+    /// Attempts to apply a move in a user-facing (UI) context.
+    /// 
+    /// This method performs full validation before execution. If the move is invalid,
+    /// the corresponding <see cref="MoveState"/> is returned and no changes are made.
+    /// 
+    /// When the move is valid:
+    /// - The move is executed.
+    /// - The position is evaluated.
+    /// - The resulting <see cref="MoveState"/> is returned.
+    /// 
+    /// Intended for interactive use where validation feedback and evaluation
+    /// updates are required.
     /// </summary>
-    /// <param name="move"></param>
-    /// <returns></returns>
+    /// <param name="move">The move to validate and apply.</param>
+    /// <returns>
+    /// The validation result. <see cref="MoveState.Ok"/> if the move was successfully applied;
+    /// otherwise, the specific validation failure.
+    /// </returns>
     public MoveState TryApplyMove(Move move)
     {
         EnsureNotTerminated();
@@ -66,23 +93,26 @@ public sealed class ChessGame
             return state;
         }
         ApplyMove(move);
-
-        var evaluated = GameOutcomeEvaluator.Evaluate(CurrentPosition, _moves, _repetition);
-
-        if (evaluated is not null)
-        {
-            Conclusion = new GameConclusion(
-                evaluated.Termination,
-                evaluated.Result
-            );
-        }
+        Evaluate();
         return state;
     }
 
     /// <summary>
-    /// Execute move without validation
+    /// Applies a move without performing validation.
+    /// 
+    /// This method assumes the move is already known to be legal and executes it
+    /// with minimal overhead. It is optimized for performance-critical paths
+    /// (e.g., UCI engine move execution).
+    /// 
+    /// Responsibilities:
+    /// - Updates the game clock (if present)
+    /// - Detects timeout and determines the resulting game conclusion
+    /// - Updates repetition tracking and position hash (if enabled)
+    /// - Advances <see cref="CurrentPosition"/>
+    /// 
+    /// No validation or evaluation is performed.
     /// </summary>
-    /// <param name="move"></param>
+    /// <param name="move">A pre-validated move to execute.</param>
     public void ApplyMove(Move move)
     {
         var color = CurrentPosition.SideToMove;

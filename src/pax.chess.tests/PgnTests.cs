@@ -83,13 +83,13 @@ public sealed class PgnTests
         var game = PgnSerializer.Parse(pgn);
         game.Metadata.White = "WhitePlayer";
         game.Metadata.Black = "BlackPlayer";
-        
+
         var serialized = PgnSerializer.Serialize(game);
-        
+
         Assert.Contains("[White \"WhitePlayer\"]", serialized);
         Assert.Contains("[Black \"BlackPlayer\"]", serialized);
         Assert.Contains("1. f4 e6 2. g4 Qh4#", serialized);
-        
+
         var reParsed = PgnSerializer.Parse(serialized);
         Assert.HasCount(game.Moves.Count, reParsed.Moves);
         for (int i = 0; i < game.Moves.Count; i++)
@@ -99,20 +99,20 @@ public sealed class PgnTests
         }
     }
 
-        [TestMethod]
+    [TestMethod]
     public void CanSerializeSimplePgn2()
     {
         string pgn = "1. e4 e5 2. Bc4 Bc5 3. Qh5 Nf6 4. Qxf7#";
         var game = PgnSerializer.Parse(pgn);
         game.Metadata.White = "WhitePlayer";
         game.Metadata.Black = "BlackPlayer";
-        
+
         var serialized = PgnSerializer.Serialize(game);
-        
+
         Assert.Contains("[White \"WhitePlayer\"]", serialized);
         Assert.Contains("[Black \"BlackPlayer\"]", serialized);
         Assert.Contains("1. e4 e5 2. Bc4 Bc5 3. Qh5 Nf6 4. Qxf7#", serialized);
-        
+
         var reParsed = PgnSerializer.Parse(serialized);
         Assert.HasCount(game.Moves.Count, reParsed.Moves);
         for (int i = 0; i < game.Moves.Count; i++)
@@ -128,10 +128,10 @@ public sealed class PgnTests
         var clock = new ChessClock(TimeSpan.FromMinutes(3), TimeSpan.Zero);
         var game = new ChessGame();
         game.SetClock(clock);
-        
+
         var move = new Move(new Square(4, 1), new Square(4, 3)); // e2e4
         game.ApplyMove(move);
-        
+
         Assert.IsNotNull(game.Moves[0].TimeRemaining);
         Assert.IsTrue(game.Moves[0].TimeRemaining <= TimeSpan.FromMinutes(3));
     }

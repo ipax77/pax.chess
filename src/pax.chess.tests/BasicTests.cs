@@ -42,13 +42,25 @@ public sealed class BasicTests
         Assert.IsNotNull(targetPiece);
     }
 
-    // [TestMethod]
-    // public void CanDetectCheckmate()
-    // {
-    //     var pgn = "1. e4 e5 2. Bc4 Bc5 3. Qh5 Nf6 4. Qxf7#";
-    //     var game = PgnSerializer.Parse(pgn);
-    //     Console.WriteLine(game.CurrentPosition.Board.ToString());
-    //     var result = game.Result;
-    //     Assert.AreEqual(GameResult.WhiteWin, result);
-    // }
+    [TestMethod]
+    public void CanDetectCheckmate()
+    {
+        var pgn = "1. e4 e5 2. Bc4 Bc5 3. Qh5 Nf6 4. Qxf7#";
+        var game = PgnSerializer.Parse(pgn);
+        // Console.WriteLine(game.CurrentPosition.Board.ToString());
+        var result = game.Result;
+        Assert.AreEqual(GameResult.WhiteWin, result);
+    }
+
+        [TestMethod]
+    public void CanDetectCheckmate2()
+    {
+        var fen = "2r3k1/6pp/p3pp1B/2bn4/2pK3P/3b1PR1/P7/3R4 w - - 2 31";
+        var pos = FenSerializer.Parse(fen);
+        var game = new ChessGame(pos, new());
+        game.Evaluate();
+        var result = game.Result;
+        Assert.AreEqual(GameResult.BlackWin, result);
+        Assert.AreEqual(GameTermination.Checkmate, game.Conclusion?.Termination);
+    }
 }

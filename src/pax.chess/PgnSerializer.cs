@@ -108,6 +108,11 @@ public static partial class PgnSerializer
             }
         }
 
+        if (!moveHelper.IsClean)
+        {
+            moveHelpers.Add(new MoveHelper(moveHelper));
+        }
+
         foreach (var ent in moveHelpers)
         {
             var whiteMove = GetMove(ent.WhiteMove, false, game.CurrentPosition);
