@@ -216,7 +216,7 @@ public static class FenSerializer
         };
     }
 
-    private static string GetPieceString(PieceType pieceType)
+    public static string GetPieceString(PieceType pieceType)
     {
         return pieceType switch
         {

@@ -41,4 +41,14 @@ public sealed class BasicTests
         var targetPiece = newPos.Board[targetSquare.Index];
         Assert.IsNotNull(targetPiece);
     }
+
+    // [TestMethod]
+    // public void CanDetectCheckmate()
+    // {
+    //     var pgn = "1. e4 e5 2. Bc4 Bc5 3. Qh5 Nf6 4. Qxf7#";
+    //     var game = PgnSerializer.Parse(pgn);
+    //     Console.WriteLine(game.CurrentPosition.Board.ToString());
+    //     var result = game.Result;
+    //     Assert.AreEqual(GameResult.WhiteWin, result);
+    // }
 }

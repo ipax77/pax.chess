@@ -29,13 +29,9 @@ public sealed class ChessClock(TimeSpan initialTime, TimeSpan increment)
         _lastMoveTime = now;
 
         if (color == PieceColor.White)
-        {
-            WhiteTime = WhiteTime - elapsed + Increment;
-        }
+            WhiteTime = TimeSpan.FromTicks(Math.Max(0, (WhiteTime - elapsed + Increment).Ticks));
         else
-        {
-            BlackTime = BlackTime - elapsed + Increment;
-        }
+            BlackTime = TimeSpan.FromTicks(Math.Max(0, (BlackTime - elapsed + Increment).Ticks));
     }
 
     public void SetTime(PieceColor color, TimeSpan time)
@@ -43,4 +39,11 @@ public sealed class ChessClock(TimeSpan initialTime, TimeSpan increment)
         if (color == PieceColor.White) WhiteTime = time;
         else BlackTime = time;
     }
+
+    public bool HasTimedOut(PieceColor color) =>
+    color == PieceColor.White ? WhiteTime <= TimeSpan.Zero : BlackTime <= TimeSpan.Zero;
+
+    public PieceColor? TimedOutColor =>
+        WhiteTime <= TimeSpan.Zero ? PieceColor.White :
+        BlackTime <= TimeSpan.Zero ? PieceColor.Black : null;
 }

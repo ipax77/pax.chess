@@ -125,7 +125,6 @@ public static partial class MoveValidator
     public static GameState GetGameState(BoardPosition pos)
     {
         ArgumentNullException.ThrowIfNull(pos);
-
         var kingEntry = pos.Board.GetKingSquare(pos.SideToMove);
         bool inCheck = IsSquareAttacked(kingEntry, pos.SideToMove, pos);
 
@@ -137,6 +136,18 @@ public static partial class MoveValidator
         }
 
         return inCheck ? GameState.Checkmate : GameState.Stalemate;
+    }
+
+    public static bool IsWinnable(BoardPosition pos, PieceColor color)
+    {
+        ArgumentNullException.ThrowIfNull(pos);
+        var pieces = pos.Board.GetPieces(color);
+        return pieces.Count switch
+        {
+            <= 1 => false,  // lone king
+            2 => pieces.Any(p => p.Piece.Type is not (PieceType.Bishop or PieceType.Knight)),
+            _ => true
+        };
     }
 
     private static bool IsCastlingPathSafe(Square from, Square to, PieceColor color, BoardPosition pos)

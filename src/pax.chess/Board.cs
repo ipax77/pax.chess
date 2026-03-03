@@ -1,4 +1,6 @@
 
+using System.Text;
+
 namespace pax.chess;
 
 public sealed class Board
@@ -81,5 +83,40 @@ public sealed class Board
         board.WhiteKingSquare = WhiteKingSquare;
         board.BlackKingSquare = BlackKingSquare;
         return board;
+    }
+
+    public override string ToString()
+    {
+        var sb = new StringBuilder(8 * 10);
+
+        for (int rank = 7; rank >= 0; rank--)
+        {
+            sb.Append(rank + 1).Append("  ");
+
+            for (int file = 0; file < 8; file++)
+            {
+                var square = new Square(file, rank);
+                var piece = this[square.Index];
+
+                if (piece is null)
+                {
+                    sb.Append(". ");
+                }
+                else
+                {
+                    var pieceString = FenSerializer.GetPieceString(piece.Value.Type);
+                    if (piece.Value.Color == PieceColor.White)
+                        pieceString = pieceString.ToUpperInvariant();
+                    sb.Append(pieceString).Append(' ');
+                }
+            }
+
+            sb.AppendLine();
+        }
+
+        sb.AppendLine();
+        sb.Append("   a b c d e f g h");
+
+        return sb.ToString();
     }
 }

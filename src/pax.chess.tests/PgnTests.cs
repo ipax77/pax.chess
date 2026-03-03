@@ -99,6 +99,29 @@ public sealed class PgnTests
         }
     }
 
+        [TestMethod]
+    public void CanSerializeSimplePgn2()
+    {
+        string pgn = "1. e4 e5 2. Bc4 Bc5 3. Qh5 Nf6 4. Qxf7#";
+        var game = PgnSerializer.Parse(pgn);
+        game.Metadata.White = "WhitePlayer";
+        game.Metadata.Black = "BlackPlayer";
+        
+        var serialized = PgnSerializer.Serialize(game);
+        
+        Assert.Contains("[White \"WhitePlayer\"]", serialized);
+        Assert.Contains("[Black \"BlackPlayer\"]", serialized);
+        Assert.Contains("1. e4 e5 2. Bc4 Bc5 3. Qh5 Nf6 4. Qxf7#", serialized);
+        
+        var reParsed = PgnSerializer.Parse(serialized);
+        Assert.HasCount(game.Moves.Count, reParsed.Moves);
+        for (int i = 0; i < game.Moves.Count; i++)
+        {
+            Assert.AreEqual(game.Moves[i].Move.From, reParsed.Moves[i].Move.From);
+            Assert.AreEqual(game.Moves[i].Move.To, reParsed.Moves[i].Move.To);
+        }
+    }
+
     [TestMethod]
     public void CanTrackClock()
     {

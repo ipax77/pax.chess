@@ -313,7 +313,7 @@ public static partial class PgnSerializer
         return sb.ToString();
     }
 
-    private static string ResultToString(GameResult result)
+    private static string ResultToString(GameResult? result)
     {
         return result switch
         {

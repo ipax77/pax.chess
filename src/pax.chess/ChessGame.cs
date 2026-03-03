@@ -12,16 +12,9 @@ public sealed class ChessGame
 
     public GameMetadata Metadata { get; private set; }
     public ChessClock? Clock { get; private set; }
-    public GameTermination Termination { get; private set; } = GameTermination.None;
-    public PieceColor? Resignee { get; private set; }  // who resigned
-    public GameResult Result => Termination switch
-{
-    GameTermination.Resignation => Resignee == PieceColor.White
-        ? GameResult.BlackWin
-        : GameResult.WhiteWin,
-        GameTermination.DrawAccepted => GameResult.Draw,
-        _ => GameOutcomeEvaluator.Evaluate(CurrentPosition, _moves, _repetition)
-};
+    public GameConclusion? Conclusion { get; private set; }
+    public GameResult? Result => Conclusion?.Result
+        ?? GameOutcomeEvaluator.Evaluate(CurrentPosition, _moves, _repetition)?.Result;
     private IPositionHasher? positionHasher;
     private readonly Dictionary<ulong, int> _repetition = [];
     private ulong _currentKey;
@@ -66,12 +59,23 @@ public sealed class ChessGame
     /// <returns></returns>
     public MoveState TryApplyMove(Move move)
     {
+        EnsureNotTerminated();
         var state = MoveValidator.IsValidMove(move, CurrentPosition);
         if (state != MoveState.Ok)
         {
             return state;
         }
         ApplyMove(move);
+
+        var evaluated = GameOutcomeEvaluator.Evaluate(CurrentPosition, _moves, _repetition);
+
+        if (evaluated is not null)
+        {
+            Conclusion = new GameConclusion(
+                evaluated.Termination,
+                evaluated.Result
+            );
+        }
         return state;
     }
 
@@ -88,6 +92,24 @@ public sealed class ChessGame
         {
             Clock.ApplyMove(color);
             remaining = color == PieceColor.White ? Clock.WhiteTime : Clock.BlackTime;
+
+            if (Clock.HasTimedOut(color))
+            {
+                var opponent = color == PieceColor.White
+                    ? PieceColor.Black
+                    : PieceColor.White;
+
+                var result = MoveValidator.IsWinnable(CurrentPosition, opponent)
+                    ? (color == PieceColor.White ? GameResult.BlackWin : GameResult.WhiteWin)
+                    : GameResult.Draw;
+
+                Conclusion = new GameConclusion(
+                    GameTermination.Timeout,
+                    result,
+                    color
+                );
+                return;
+            }
         }
 
         var next = CurrentPosition.MakeMove(move);
@@ -104,19 +126,34 @@ public sealed class ChessGame
 
     public void Resign(PieceColor color)
     {
-        if (Termination != GameTermination.None)
-            throw new InvalidOperationException("Game is already terminated.");
+        EnsureNotTerminated();
 
-        Resignee = color;
-        Termination = GameTermination.Resignation;
+        var result = color == PieceColor.White
+            ? GameResult.BlackWin
+            : GameResult.WhiteWin;
+
+        Conclusion = new GameConclusion(
+            GameTermination.Resignation,
+            result,
+            color
+        );
     }
 
-    public void AcceptDraw()
+    private void EnsureNotTerminated()
     {
-        if (Termination != GameTermination.None)
+        if (Conclusion is not null)
             throw new InvalidOperationException("Game is already terminated.");
+    }
 
-        Termination = GameTermination.DrawAccepted;
+    public void AcceptDraw(PieceColor color)
+    {
+        EnsureNotTerminated();
+
+        Conclusion = new GameConclusion(
+            GameTermination.DrawByAgreement,
+            GameResult.Draw,
+            color
+        );
     }
 
     public int? GetCurrentRepetitions()
@@ -135,3 +172,9 @@ public sealed class ChessGame
 
     public ulong? CurrentHash => positionHasher is null ? null : _currentKey;
 }
+
+public sealed record GameConclusion(
+    GameTermination Termination,
+    GameResult Result,
+    PieceColor? AffectedPlayer = null
+);

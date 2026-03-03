@@ -36,7 +36,6 @@ public enum CastlingRights
 
 public enum GameResult
 {
-    Ongoing,
     WhiteWin,
     BlackWin,
     Draw
@@ -64,7 +63,11 @@ public enum GameState
 
 public enum GameTermination
 {
-    None,
+    Checkmate,
+    Stalemate,
     Resignation,
-    DrawAccepted
+    Timeout,
+    DrawByAgreement,
+    SeventyFiveMoveRule,
+    FivefoldRepetition
 }
