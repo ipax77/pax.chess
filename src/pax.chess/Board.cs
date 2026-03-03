@@ -20,7 +20,15 @@ public sealed class Board
             if (_squares[index].HasValue)
             {
                 var existing = _squares[index]!.Value;
-                GetList(existing.Color).RemoveAll(e => e.Square.Index == index);
+                var list = GetList(existing.Color);
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (list[i].Square.Index == index)
+                    {
+                        list.RemoveAt(i);
+                        break;
+                    }
+                }
 
                 if (existing.Type == PieceType.King)
                     ClearKingSquare(existing.Color);
@@ -66,7 +74,9 @@ public sealed class Board
     {
         var board = new Board();
         Array.Copy(_squares, board._squares, 64);
+        board._whitePieces.Clear();
         board._whitePieces.AddRange(_whitePieces);
+        board._blackPieces.Clear();
         board._blackPieces.AddRange(_blackPieces);
         board.WhiteKingSquare = WhiteKingSquare;
         board.BlackKingSquare = BlackKingSquare;

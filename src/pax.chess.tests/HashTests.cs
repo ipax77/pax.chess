@@ -67,4 +67,15 @@ public class HashTests
         var posHash = positionHasher.Compute(game.CurrentPosition);
         Assert.AreEqual(posHash, incrementalHash);
     }
+
+    [TestMethod]
+    public void CanReComputeWithPromotion()
+    {
+        var positionHasher = new ZobristHasher();
+        // 1. e4 c5 2. e5 d5 3. exd6 e6 4. d7+ Ke7 5. dxc8=Q
+        var game = PgnSerializer.Parse("1. e4 c5 2. e5 d5 3. exd6 e6 4. d7+ Ke7 5. dxc8=Q", positionHasher);
+        var incrementalHash = game.CurrentHash;
+        var posHash = positionHasher.Compute(game.CurrentPosition);
+        Assert.AreEqual(posHash, incrementalHash);
+    }
 }

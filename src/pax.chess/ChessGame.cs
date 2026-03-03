@@ -12,8 +12,16 @@ public sealed class ChessGame
 
     public GameMetadata Metadata { get; private set; }
     public ChessClock? Clock { get; private set; }
-
-    public GameResult Result => GameOutcomeEvaluator.Evaluate(CurrentPosition, _moves, _repetition);
+    public GameTermination Termination { get; private set; } = GameTermination.None;
+    public PieceColor? Resignee { get; private set; }  // who resigned
+    public GameResult Result => Termination switch
+{
+    GameTermination.Resignation => Resignee == PieceColor.White
+        ? GameResult.BlackWin
+        : GameResult.WhiteWin,
+        GameTermination.DrawAccepted => GameResult.Draw,
+        _ => GameOutcomeEvaluator.Evaluate(CurrentPosition, _moves, _repetition)
+};
     private IPositionHasher? positionHasher;
     private readonly Dictionary<ulong, int> _repetition = [];
     private ulong _currentKey;
@@ -41,20 +49,21 @@ public sealed class ChessGame
         Clock = clock;
     }
 
-    public void ActivatePositionHashing(IPositionHasher? positionHasher = null)
+    public void ActivatePositionHashing(IPositionHasher? hasher = null)
     {
-        if (positionHasher is null)
-        {
-            this.positionHasher = new ZobristHasher();
-        }
-        else
-        {
-            this.positionHasher = positionHasher;
-        }
-        _currentKey = this.positionHasher.Compute(CurrentPosition);
-        _repetition.Add(_currentKey, 1);
+        if (positionHasher is not null)
+            throw new InvalidOperationException("Hashing is already active.");
+
+        positionHasher = hasher ?? new ZobristHasher();
+        _currentKey = positionHasher.Compute(CurrentPosition);
+        _repetition[_currentKey] = 1;
     }
 
+    /// <summary>
+    /// Validate Move and execute only when valid.
+    /// </summary>
+    /// <param name="move"></param>
+    /// <returns></returns>
     public MoveState TryApplyMove(Move move)
     {
         var state = MoveValidator.IsValidMove(move, CurrentPosition);
@@ -66,6 +75,10 @@ public sealed class ChessGame
         return state;
     }
 
+    /// <summary>
+    /// Execute move without validation
+    /// </summary>
+    /// <param name="move"></param>
     public void ApplyMove(Move move)
     {
         var color = CurrentPosition.SideToMove;
@@ -89,8 +102,30 @@ public sealed class ChessGame
         CurrentPosition = next;
     }
 
-    public int GetCurrentRepetitions()
+    public void Resign(PieceColor color)
     {
+        if (Termination != GameTermination.None)
+            throw new InvalidOperationException("Game is already terminated.");
+
+        Resignee = color;
+        Termination = GameTermination.Resignation;
+    }
+
+    public void AcceptDraw()
+    {
+        if (Termination != GameTermination.None)
+            throw new InvalidOperationException("Game is already terminated.");
+
+        Termination = GameTermination.DrawAccepted;
+    }
+
+    public int? GetCurrentRepetitions()
+    {
+        if (positionHasher is null)
+        {
+            return null;
+        }
+
         if (_repetition.TryGetValue(_currentKey, out var count))
         {
             return count;
@@ -98,5 +133,5 @@ public sealed class ChessGame
         return 0;
     }
 
-    public ulong CurrentHash => _currentKey;
+    public ulong? CurrentHash => positionHasher is null ? null : _currentKey;
 }

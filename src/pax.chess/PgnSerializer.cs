@@ -241,7 +241,17 @@ public static partial class PgnSerializer
         }
         if (fromSquare.HasValue)
         {
-            return new Move(fromSquare.Value, destination, transformation);
+            MoveType moveType = MoveType.None;
+            if (pos.Board[destination.Index].HasValue)
+                moveType |= MoveType.Capture;
+            
+            if (transformation.HasValue)
+                moveType |= MoveType.Promotion;
+
+            if (pieceType == PieceType.Pawn && destination == pos.EnPassantTarget)
+                moveType |= MoveType.EnPassant;
+
+            return new Move(fromSquare.Value, destination, transformation, moveType);
         }
         else
         {

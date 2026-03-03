@@ -61,3 +61,10 @@ public enum GameState
     Checkmate,
     Stalemate,
 }
+
+public enum GameTermination
+{
+    None,
+    Resignation,
+    DrawAccepted
+}
