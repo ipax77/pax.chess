@@ -108,4 +108,40 @@ public sealed class AnalysisBoardTests
         Assert.AreEqual(firstNode, board.CurrentNode);
         Assert.HasCount(1, board.Root.Variations);
     }
+
+    [TestMethod]
+    public void TestDeleteVariation()
+    {
+        var board = new AnalysisBoard();
+        var e2e4 = new Move(new Square(4, 1), new Square(4, 3));
+        var d2d4 = new Move(new Square(3, 1), new Square(3, 3));
+
+        board.TryApplyMove(e2e4);
+        var e2e4Node = board.CurrentNode;
+        board.MoveBackward();
+        board.TryApplyMove(d2d4);
+
+        Assert.HasCount(2, board.Root.Variations);
+
+        Assert.IsTrue(board.DeleteVariation(e2e4Node));
+        Assert.HasCount(1, board.Root.Variations);
+        Assert.AreEqual(d2d4, board.Root.Variations[0].Move);
+    }
+
+    [TestMethod]
+    public void TestDeleteCurrentVariation()
+    {
+        var board = new AnalysisBoard();
+        var e2e4 = new Move(new Square(4, 1), new Square(4, 3));
+        var e7e5 = new Move(new Square(4, 6), new Square(4, 4));
+
+        board.TryApplyMove(e2e4);
+        board.TryApplyMove(e7e5);
+
+        Assert.AreEqual(e7e5, board.CurrentNode.Move);
+
+        Assert.IsTrue(board.DeleteCurrentVariation());
+        Assert.AreEqual(e2e4, board.CurrentNode.Move);
+        Assert.IsEmpty(board.CurrentNode.Variations);
+    }
 }

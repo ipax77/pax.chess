@@ -63,6 +63,11 @@ public sealed class MoveNode
         _variations.Add(node);
         return node;
     }
+
+    internal bool RemoveVariation(MoveNode node)
+    {
+        return _variations.Remove(node);
+    }
 }
 
 /// <summary>
@@ -131,6 +136,54 @@ public sealed class AnalysisBoard
         }
 
         return MoveState.Ok;
+    }
+
+    /// <summary>
+    /// Deletes a variation (and all its sub-variations) from the tree.
+    /// If the current node is part of the deleted variation, the current node 
+    /// is moved to the parent of the deleted variation.
+    /// </summary>
+    /// <param name="node">The node to delete. Root cannot be deleted.</param>
+    /// <returns>True if the node was deleted; otherwise, false.</returns>
+    public bool DeleteVariation(MoveNode node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+
+        if (node == Root || node.Parent == null)
+            return false;
+
+        // Check if CurrentNode is node or a descendant of node
+        var curr = CurrentNode;
+        bool currentIsAffected = false;
+        while (curr != null)
+        {
+            if (curr == node)
+            {
+                currentIsAffected = true;
+                break;
+            }
+            curr = curr.Parent;
+        }
+
+        if (currentIsAffected)
+        {
+            CurrentNode = node.Parent;
+        }
+
+        return node.Parent.RemoveVariation(node);
+    }
+
+    /// <summary>
+    /// Deletes the current variation (and all its sub-variations).
+    /// The current node is moved to the parent node.
+    /// </summary>
+    /// <returns>True if the variation was deleted; otherwise, false (e.g., if at Root).</returns>
+    public bool DeleteCurrentVariation()
+    {
+        if (CurrentNode == Root)
+            return false;
+
+        return DeleteVariation(CurrentNode);
     }
 
     /// <summary>
