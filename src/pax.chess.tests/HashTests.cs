@@ -35,10 +35,10 @@ public class HashTests
         game.ActivatePositionHashing();
         var positionHasher = new ZobristHasher();
 
-        var move1 = Uci.CreateMove("e2e4")!;
-        var move2 = Uci.CreateMove("e7e5")!;
-        var move3 = Uci.CreateMove("g1e2")!;
-        var move4 = Uci.CreateMove("g8f6")!;
+        var move1 = Uci.CreateMove("e2e4", game.CurrentPosition)!;
+        var move2 = Uci.CreateMove("e7e5", game.CurrentPosition)!;
+        var move3 = Uci.CreateMove("g1e2", game.CurrentPosition)!;
+        var move4 = Uci.CreateMove("g8f6", game.CurrentPosition)!;
         game.ApplyMove(move1);
         game.ApplyMove(move2);
         game.ApplyMove(move3);

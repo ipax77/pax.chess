@@ -1,14 +1,14 @@
-
-using System.Globalization;
+using pax.chess.Validation;
 
 namespace pax.chess.Extensions;
 
 public static class Uci
 {
-    public static Move? CreateMove(string notation)
+    public static Move? CreateMove(string notation, BoardPosition pos)
     {
         if (string.IsNullOrWhiteSpace(notation))
             return null;
+        ArgumentNullException.ThrowIfNull(pos);
 
 #pragma warning disable CA1308 // Normalize strings to uppercase
         notation = notation.Trim().ToLowerInvariant();
@@ -39,6 +39,14 @@ public static class Uci
         var startSquare = new Square(fromFile, fromRank);
         var targetSquare = new Square(toFile, toRank);
 
-        return new Move(startSquare, targetSquare, promotion);
+        MoveType moveType = MoveType.None;
+        if (pos.Board[startSquare.Index]?.Type == PieceType.King)
+        {
+            if (startSquare.File - targetSquare.File > 1)
+                moveType |= MoveType.CastlingKingSide;
+            else if (startSquare.File - targetSquare.File < 1)
+                moveType |= MoveType.CastlingQueenSide;
+        }
+        return new Move(startSquare, targetSquare, promotion, moveType);
     }
 }
