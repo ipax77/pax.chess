@@ -1,58 +1,111 @@
-# Introduction
+# pax.chess
 
-C# dotnet chess library with pgn/fen import/export and move validation.
+C# chess library for .NET 10 with:
 
-# Getting started
-## Prerequisites
-dotnet
+- move validation and game-state evaluation
+- PGN parsing/serialization
+- FEN parsing/serialization
+- UCI move conversion helpers
+- move-tree analysis with variations
+- optional game clock and timeout handling
+
+Sample project: [pax.BlazorChess](https://github.com/ipax77/pax.BlazorChess)
+
+## Requirements
+
+- .NET SDK 10.0+
 
 ## Installation
-You can install it with the Package Manager in your IDE or alternatively using the command line:
 
 ```bash
 dotnet add package pax.chess
 ```
-## Usage
 
-Sample Project: [pax.BlazorChess](https://github.com/ipax77/pax.BlazorChess)
+## Quick Start
 
 ```csharp
-Game game = new Game();
-EngineMove move = new EngineMove(new Position(4, 2), new Position(5, 3));
-var state = game.Move(move);
-var pgn = Pgn.MapPieces(game.State);
+using pax.chess;
+
+var game = new ChessGame();
+var move = new Move(new Square(4, 1), new Square(4, 3)); // e2e4
+
+var state = game.TryApplyMove(move);
+if (state == MoveState.Ok)
+{
+    Console.WriteLine(game.CurrentPosition.SideToMove); // Black
+}
 ```
+
+## PGN
+
+### Parse PGN
+
 ```csharp
+using pax.chess;
+
 string pgn = "1. e4 e5 2. Bc4 Bc5 3. Qh5 Nf6 4. Qxf7#";
-Game game = Pgn.MapString(pgn);
-Assert.True(game.State.Info.IsCheckMate);
+var game = PgnSerializer.Parse(pgn);
+game.Evaluate();
 
+Console.WriteLine(game.Result); // WhiteWin
+Console.WriteLine(game.Conclusion?.Termination); // Checkmate
 ```
+
+### Serialize PGN
+
 ```csharp
-string pgn = "1. e4 d5 2. exd5 e6 3. dxe6 Qe7 4. Nc3 Bxe6 5. b3 Bxb3+";
-Game game = Pgn.MapString(pgn);
-var state = game.Move(new EngineMove(new Position(0, 1), new Position(1, 2)));
-Assert.True(state == MoveState.WouldBeCheck);
+using pax.chess;
+
+var game = PgnSerializer.Parse("1. f4 e6 2. g4 Qh4#");
+game.Metadata.White = "WhitePlayer";
+game.Metadata.Black = "BlackPlayer";
+
+string serialized = PgnSerializer.Serialize(game);
+Console.WriteLine(serialized);
 ```
+
+## FEN
+
 ```csharp
-string fen = "2r3k1/6pp/p3pp1B/2bn4/2pK3P/3b1PR1/P7/3R4 w - - 2 31";
-Game game = new Game(fen);
-Assert.True(game.State.Info.IsCheckMate);
+using pax.chess;
 
+string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+BoardPosition position = FenSerializer.Parse(fen);
+string roundtrip = FenSerializer.Serialize(position);
 ```
+
+## UCI Helpers
+
 ```csharp
-string pgn = "1. g4 h5 2. gxh5 Rxh5 3. Nf3 Rh6 4. Bh3 Rg6";
-Game game = Pgn.MapString(pgn);
-var state = game.Move(new EngineMove(new Position(4, 0), new Position(6, 0)));
-Assert.True(state == MoveState.CastleNotAllowed);
+using pax.chess;
+using pax.chess.Extensions;
+
+var game = new ChessGame();
+var move = Uci.CreateMove("e2e4", game.CurrentPosition);
+
+if (move is not null)
+{
+    game.ApplyMove(move); // Use ApplyMove for pre-validated engine moves
+}
+
+string uci = Uci.GetUci(game.Moves[0].Move); // "e2e4"
 ```
 
-## ChangeLog
+## Analysis Board (Variations)
 
-<details open="open"><summary>v0.6.6</summary>
+```csharp
+using pax.chess;
 
->- ** Breaking Changes **
->- Update to dotnet 8
->- Fix pawn promotion png
+var board = new AnalysisBoard();
+board.TryApplyMove(new Move(new Square(4, 1), new Square(4, 3))); // e2e4
+board.MoveBackward();
+board.TryApplyMove(new Move(new Square(3, 1), new Square(3, 3))); // d2d4 as second variation
 
-</details>
+Console.WriteLine(board.Root.Variations.Count); // 2
+```
+
+## Development
+
+```bash
+dotnet test
+```
