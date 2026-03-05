@@ -230,7 +230,7 @@ public static class FenSerializer
         };
     }
 
-    private static char GetCharColumn(int x)
+    public static char GetCharColumn(int x)
     {
         return x switch
         {

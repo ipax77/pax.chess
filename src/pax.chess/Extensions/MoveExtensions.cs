@@ -40,13 +40,44 @@ public static class Uci
         var targetSquare = new Square(toFile, toRank);
 
         MoveType moveType = MoveType.None;
-        if (pos.Board[startSquare.Index]?.Type == PieceType.King)
+        var piece = pos.Board[startSquare.Index];
+
+        if (piece?.Type == PieceType.King)
         {
-            if (startSquare.File - targetSquare.File > 1)
-                moveType |= MoveType.CastlingKingSide;
-            else if (startSquare.File - targetSquare.File < 1)
-                moveType |= MoveType.CastlingQueenSide;
+            int fileDelta = targetSquare.File - startSquare.File;
+
+            if (Math.Abs(fileDelta) > 1)
+            {
+                if (fileDelta > 0)
+                    moveType = MoveType.CastlingKingSide;
+                else
+                    moveType = MoveType.CastlingQueenSide;
+            }
         }
         return new Move(startSquare, targetSquare, promotion, moveType);
+    }
+
+    public static string GetUci(Move move)
+    {
+        if (move == null) return string.Empty;
+
+        string from = GetSquareNotation(move.From);
+        string to = GetSquareNotation(move.To);
+        string promotion = "";
+
+        if (move.Promotion != null)
+        {
+            // Promotion must be lowercase (q, r, b, n)
+            promotion = FenSerializer.GetPieceString(move.Promotion.Value);
+        }
+
+        return $"{from}{to}{promotion}";
+    }
+
+    private static string GetSquareNotation(Square sq)
+    {
+        char file = (char)('a' + sq.File);
+        char rank = (char)('1' + sq.Rank);
+        return $"{file}{rank}";
     }
 }
