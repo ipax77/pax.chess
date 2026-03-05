@@ -69,5 +69,6 @@ public enum GameTermination
     Timeout,
     DrawByAgreement,
     SeventyFiveMoveRule,
-    FivefoldRepetition
+    FivefoldRepetition,
+    NoMaterial,
 }

@@ -145,6 +145,13 @@ public sealed class ChessGame
         var next = CurrentPosition.MakeMove(move);
         _moves.Add(new MoveInfo(move, remaining));
 
+        if (next.Board.GetPieces(PieceColor.White).Count == 1 && next.Board.GetPieces(PieceColor.Black).Count == 1)
+        {
+            CurrentPosition = next;
+            Conclusion = new(GameTermination.NoMaterial, GameResult.Draw);
+            return;
+        }
+
         if (positionHasher is not null)
         {
             _currentKey = positionHasher.Update(_currentKey, CurrentPosition, move, next);
