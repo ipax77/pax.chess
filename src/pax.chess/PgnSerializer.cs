@@ -329,8 +329,10 @@ public static partial class PgnSerializer
         };
     }
 
-    private static string ToSan(Move move, BoardPosition pos)
+    public static string ToSan(Move move, BoardPosition pos)
     {
+        ArgumentNullException.ThrowIfNull(move);
+        ArgumentNullException.ThrowIfNull(pos);
         var piece = pos.Board[move.From.Index] ?? throw new InvalidOperationException("No piece at from square");
 
         if (move.MoveType.HasFlag(MoveType.CastlingKingSide))

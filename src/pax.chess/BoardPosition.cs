@@ -181,6 +181,18 @@ public sealed class BoardPosition(
             : FullmoveNumber;
     }
 
+    public BoardPosition Clone()
+    {
+        return new BoardPosition(
+            Board.Clone(),
+            SideToMove,
+            CastlingRights,
+            EnPassantTarget,
+            HalfmoveClock,
+            FullmoveNumber
+        );
+    }
+
     public static BoardPosition CreateInitial()
     {
         var board = new Board();

@@ -6,18 +6,21 @@ namespace pax.chess;
 public sealed class ChessGame
 {
     public BoardPosition CurrentPosition { get; private set; }
+    public BoardPosition? PreviousPosition { get; private set; }
 
     public IReadOnlyList<MoveInfo> Moves => _moves.AsReadOnly();
-    private readonly List<MoveInfo> _moves = [];
 
     public GameMetadata Metadata { get; private set; }
     public ChessClock? Clock { get; private set; }
     public GameConclusion? Conclusion { get; private set; }
     public GameResult? Result => Conclusion?.Result
         ?? GameOutcomeEvaluator.Evaluate(CurrentPosition, _moves, _repetition)?.Result;
+    public EventHandler? OnMoveApplied { get; set; }
+
     private IPositionHasher? positionHasher;
     private readonly Dictionary<ulong, int> _repetition = [];
     private ulong _currentKey;
+    private readonly List<MoveInfo> _moves = [];
 
     public ChessGame()
     {
@@ -52,6 +55,7 @@ public sealed class ChessGame
                 evaluated.Termination,
                 evaluated.Result
             );
+            Clock?.Pause();
         }
     }
 
@@ -147,7 +151,7 @@ public sealed class ChessGame
 
         if (next.Board.GetPieces(PieceColor.White).Count == 1 && next.Board.GetPieces(PieceColor.Black).Count == 1)
         {
-            CurrentPosition = next;
+            UpdatePosition(next);
             Conclusion = new(GameTermination.NoMaterial, GameResult.Draw);
             return;
         }
@@ -158,7 +162,14 @@ public sealed class ChessGame
             _repetition.TryGetValue(_currentKey, out var count);
             _repetition[_currentKey] = count + 1;
         }
-        CurrentPosition = next;
+        UpdatePosition(next);
+        OnMoveApplied?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void UpdatePosition(BoardPosition pos)
+    {
+        PreviousPosition = CurrentPosition.Clone();
+        CurrentPosition = pos;
     }
 
     public void Resign(PieceColor color)
