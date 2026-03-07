@@ -5,6 +5,7 @@ namespace pax.chess;
 
 public sealed class ChessGame
 {
+    public BoardPosition InitialPosition { get; private set; } = BoardPosition.CreateInitial();
     public BoardPosition CurrentPosition { get; private set; }
     public BoardPosition? PreviousPosition { get; private set; }
 
@@ -30,6 +31,7 @@ public sealed class ChessGame
 
     public ChessGame(BoardPosition initialPosition, GameMetadata metadata, ChessClock? clock = null)
     {
+        InitialPosition = initialPosition;
         CurrentPosition = initialPosition;
         Metadata = metadata;
         Clock = clock;
