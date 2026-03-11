@@ -1,4 +1,5 @@
 using pax.chess.Validation;
+using System.Collections.ObjectModel;
 
 namespace pax.chess;
 
@@ -161,6 +162,11 @@ public sealed class AnalysisBoard
         }
 
         return MoveState.Ok;
+    }
+
+    public void AddVariationToRoot(int rootHalfMoveNumber, ReadOnlyCollection<Move> moves)
+    {
+
     }
 
     /// <summary>

@@ -118,13 +118,15 @@ public static partial class PgnSerializer
             var whiteMove = GetMove(ent.WhiteMove, false, game.CurrentPosition);
             if (whiteMove != null)
             {
-                game.ApplyMove(whiteMove);
+                var san = ToSan(whiteMove, game.CurrentPosition);
+                game.ApplyMove(whiteMove, san);
             }
 
             var blackMove = GetMove(ent.BlackMove, true, game.CurrentPosition);
             if (blackMove != null)
             {
-                game.ApplyMove(blackMove);
+                var san = ToSan(blackMove, game.CurrentPosition);
+                game.ApplyMove(blackMove, san);
             }
         }
 

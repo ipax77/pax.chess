@@ -86,11 +86,12 @@ public sealed class ChessGame
     /// updates are required.
     /// </summary>
     /// <param name="move">The move to validate and apply.</param>
+    /// <param name="san">Optional SAN (Standard Algebraic Notation) string for the move.</param>
     /// <returns>
     /// The validation result. <see cref="MoveState.Ok"/> if the move was successfully applied;
     /// otherwise, the specific validation failure.
     /// </returns>
-    public MoveState TryApplyMove(Move move)
+    public MoveState TryApplyMove(Move move, string? san = null)
     {
         EnsureNotTerminated();
         var state = MoveValidator.IsValidMove(move, CurrentPosition);
@@ -98,7 +99,7 @@ public sealed class ChessGame
         {
             return state;
         }
-        ApplyMove(move);
+        ApplyMove(move, san);
         Evaluate();
         return state;
     }
@@ -119,7 +120,8 @@ public sealed class ChessGame
     /// No validation or evaluation is performed.
     /// </summary>
     /// <param name="move">A pre-validated move to execute.</param>
-    public void ApplyMove(Move move)
+    /// <param name="san">Optional SAN (Standard Algebraic Notation) string for the move.</param>
+    public void ApplyMove(Move move, string? san = null)
     {
         var color = CurrentPosition.SideToMove;
         TimeSpan? remaining = null;
@@ -149,7 +151,7 @@ public sealed class ChessGame
         }
 
         var next = CurrentPosition.MakeMove(move);
-        _moves.Add(new MoveInfo(move, remaining));
+        _moves.Add(new MoveInfo(move, remaining, san));
 
         if (next.Board.GetPieces(PieceColor.White).Count == 1 && next.Board.GetPieces(PieceColor.Black).Count == 1)
         {
