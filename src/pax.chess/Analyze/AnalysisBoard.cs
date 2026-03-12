@@ -1,4 +1,5 @@
 ﻿using pax.chess.Extensions;
+using System.Text;
 
 namespace pax.chess.Analyze;
 
@@ -184,6 +185,29 @@ public sealed class AnalysisBoard
             pos = pos.MakeMove(stack.Pop());
 
         return pos;
+    }
+
+    public string GetCurrentEngineMoves()
+    {
+        if (CurrentNode is null) return string.Empty; 
+        var node = CurrentNode;
+        var stack = new Stack<Move>();
+
+        while (node.Move != null)
+        {
+            stack.Push(node.Move);
+            node = node.Parent!;
+        }
+        
+        StringBuilder sb = new();
+        while (stack.Count > 0)
+        {
+            var move = stack.Pop();
+            var engineMove = Uci.GetUci(move);
+            sb.Append(engineMove + " ");
+        }
+        sb.Length--;
+        return sb.ToString();
     }
 
     //private static MoveNode ReplaceNode(MoveNode oldNode, MoveNode newNode)
