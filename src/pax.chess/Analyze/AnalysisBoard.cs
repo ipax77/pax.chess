@@ -13,10 +13,12 @@ public sealed class AnalysisBoard
 
     private readonly BoardPosition _initialPosition;
 
+    public ChessGame ChessGame { get; private set; }
+
     public AnalysisBoard(ChessGame game)
     {
         ArgumentNullException.ThrowIfNull(game);
-
+        ChessGame = game;
         _initialPosition = game.InitialPosition;
 
         Root = BuildMainLine(game);
