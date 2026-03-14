@@ -129,7 +129,7 @@ public static partial class PgnSerializer
                 game.ApplyMove(blackMove, san);
             }
         }
-
+        game.Evaluate();
         return game;
     }
 
