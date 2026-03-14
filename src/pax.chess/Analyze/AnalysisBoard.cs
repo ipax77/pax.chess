@@ -242,6 +242,7 @@ public sealed class MoveNode
     public List<MoveNode> Children { get; set; } = [];
 
     public string San { get; init; } = string.Empty;
+    public string? Note { get; set; }
 
     public BoardPosition? CachedPosition { get; init; }
 
