@@ -10,12 +10,11 @@ public class HashTests
     public void CanCreateHashes()
     {
         var game = new ChessGame();
-        game.ActivatePositionHashing();
 
         var startSquare = new Square(0, 1);
         var targetSquare = new Square(0, 3);
         Move move = new(startSquare, targetSquare, null);
-        var result = game.TryApplyMove(move);
+        var result = game.ApplyMove(move);
         Assert.AreEqual(MoveState.Ok, result);
         Assert.AreEqual(1, game.GetCurrentRepetitions());
     }
@@ -23,8 +22,7 @@ public class HashTests
     [TestMethod]
     public void CanDetectRepetition()
     {
-        var positionHasher = new ZobristHasher();
-        var game = PgnSerializer.Parse("1. Nc3 Nc6 2. Nb1 Nb8 3. Nc3 Nc6 4. Nb1 Nb8 5. Nc3 Nc6", positionHasher);
+        var game = PgnSerializer.Parse("1. Nc3 Nc6 2. Nb1 Nb8 3. Nc3 Nc6 4. Nb1 Nb8 5. Nc3 Nc6");
         Assert.AreEqual(3, game.GetCurrentRepetitions());
     }
 
@@ -32,7 +30,6 @@ public class HashTests
     public void CanUpdateHash()
     {
         var game = new ChessGame();
-        game.ActivatePositionHashing();
         var positionHasher = new ZobristHasher();
 
         var move1 = Uci.CreateMove("e2e4", game.CurrentPosition)!;
@@ -52,7 +49,7 @@ public class HashTests
     public void CanReComputeWithCastling()
     {
         var positionHasher = new ZobristHasher();
-        var game = PgnSerializer.Parse("1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. O-O O-O", positionHasher);
+        var game = PgnSerializer.Parse("1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. O-O O-O");
         var incrementalHash = game.CurrentHash;
         var posHash = positionHasher.Compute(game.CurrentPosition);
         Assert.AreEqual(posHash, incrementalHash);
@@ -62,7 +59,7 @@ public class HashTests
     public void CanReComputeWithEnPassant()
     {
         var positionHasher = new ZobristHasher();
-        var game = PgnSerializer.Parse("1. e4 c5 2. e5 d5 3. exd6", positionHasher);
+        var game = PgnSerializer.Parse("1. e4 c5 2. e5 d5 3. exd6");
         var incrementalHash = game.CurrentHash;
         var posHash = positionHasher.Compute(game.CurrentPosition);
         Assert.AreEqual(posHash, incrementalHash);
@@ -73,7 +70,7 @@ public class HashTests
     {
         var positionHasher = new ZobristHasher();
         // 1. e4 c5 2. e5 d5 3. exd6 e6 4. d7+ Ke7 5. dxc8=Q
-        var game = PgnSerializer.Parse("1. e4 c5 2. e5 d5 3. exd6 e6 4. d7+ Ke7 5. dxc8=Q", positionHasher);
+        var game = PgnSerializer.Parse("1. e4 c5 2. e5 d5 3. exd6 e6 4. d7+ Ke7 5. dxc8=Q");
         var incrementalHash = game.CurrentHash;
         var posHash = positionHasher.Compute(game.CurrentPosition);
         Assert.AreEqual(posHash, incrementalHash);

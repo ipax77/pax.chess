@@ -5,7 +5,7 @@ namespace pax.chess;
 
 internal static class GameOutcomeEvaluator
 {
-    internal static EvaluationResult? Evaluate(BoardPosition position, IReadOnlyList<MoveInfo> moves, Dictionary<ulong, int> repetition)
+    internal static EvaluationResult? Evaluate(BoardPosition position, Dictionary<ulong, int> repetition)
     {
         if (position.HalfmoveClock >= 75)
         {

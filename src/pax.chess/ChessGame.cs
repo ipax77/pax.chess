@@ -1,55 +1,53 @@
-
 using pax.chess.Validation;
 
 namespace pax.chess;
 
 public sealed class ChessGame
 {
-    public BoardPosition InitialPosition { get; private set; } = BoardPosition.CreateInitial();
+    public BoardPosition InitialPosition { get; }
     public BoardPosition CurrentPosition { get; private set; }
     public BoardPosition? PreviousPosition { get; private set; }
 
     public IReadOnlyList<MoveInfo> Moves => _moves.AsReadOnly();
 
-    public GameMetadata Metadata { get; private set; }
-    public ChessClock? Clock { get; private set; }
+    public GameMetadata Metadata { get; }
+    public ChessClock? Clock { get; }
     public GameConclusion? Conclusion { get; private set; }
     public GameResult? Result => Conclusion?.Result
-        ?? GameOutcomeEvaluator.Evaluate(CurrentPosition, _moves, _repetition)?.Result;
+        ?? GameOutcomeEvaluator.Evaluate(CurrentPosition, _repetition)?.Result;
     public EventHandler? OnMoveApplied { get; set; }
 
-    private IPositionHasher? positionHasher;
+    public ulong? CurrentHash => _currentKey;
+    public int? GetCurrentRepetitions() =>
+        _repetition.TryGetValue(_currentKey, out var count) ? count : 0;
+
+    private readonly ChessGameOptions _options;
+    private readonly IPositionHasher _hasher;
     private readonly Dictionary<ulong, int> _repetition = [];
     private ulong _currentKey;
     private readonly List<MoveInfo> _moves = [];
 
-    public ChessGame()
-    {
-        CurrentPosition = BoardPosition.CreateInitial();
-        Metadata = new();
-    }
+    public ChessGame() : this(BoardPosition.CreateInitial(), ChessGameOptions.Default) { }
 
-    public ChessGame(BoardPosition initialPosition, GameMetadata metadata, ChessClock? clock = null)
+    public ChessGame(ChessGameOptions options) : this(BoardPosition.CreateInitial(), options) { }
+
+    public ChessGame(BoardPosition initialPosition, ChessGameOptions? options = null)
     {
+        _options = options ?? ChessGameOptions.Default;
+        _hasher = _options.Hasher ?? new ZobristHasher();
+
         InitialPosition = initialPosition;
         CurrentPosition = initialPosition;
-        Metadata = metadata;
-        Clock = clock;
-    }
+        Metadata = _options.Metadata;
+        Clock = _options.Clock;
 
-    public void SetMetadata(GameMetadata metadata)
-    {
-        Metadata = metadata;
-    }
-
-    public void SetClock(ChessClock clock)
-    {
-        Clock = clock;
+        _currentKey = _hasher.Compute(CurrentPosition);
+        _repetition[_currentKey] = 1;
     }
 
     public void Evaluate()
     {
-        var evaluated = GameOutcomeEvaluator.Evaluate(CurrentPosition, _moves, _repetition);
+        var evaluated = GameOutcomeEvaluator.Evaluate(CurrentPosition, _repetition);
 
         if (evaluated is not null)
         {
@@ -61,67 +59,39 @@ public sealed class ChessGame
         }
     }
 
-    public void ActivatePositionHashing(IPositionHasher? hasher = null)
-    {
-        if (positionHasher is not null)
-            throw new InvalidOperationException("Hashing is already active.");
-
-        positionHasher = hasher ?? new ZobristHasher();
-        _currentKey = positionHasher.Compute(CurrentPosition);
-        _repetition[_currentKey] = 1;
-    }
-
     /// <summary>
-    /// Attempts to apply a move in a user-facing (UI) context.
-    /// 
-    /// This method performs full validation before execution. If the move is invalid,
-    /// the corresponding <see cref="MoveState"/> is returned and no changes are made.
-    /// 
-    /// When the move is valid:
-    /// - The move is executed.
-    /// - The position is evaluated.
-    /// - The resulting <see cref="MoveState"/> is returned.
-    /// 
-    /// Intended for interactive use where validation feedback and evaluation
-    /// updates are required.
+    /// Attempts to apply a move, validating it first unless <see cref="ChessGameOptions.SkipValidation"/> is set.
+    ///
+    /// If validation fails, the corresponding <see cref="MoveState"/> is returned and no changes are made.
+    /// If validation passes (or is skipped), the move is executed.
+    /// Unless <see cref="ChessGameOptions.SkipEvaluation"/> is set, the position is evaluated afterwards.
     /// </summary>
-    /// <param name="move">The move to validate and apply.</param>
-    /// <param name="san">Optional SAN (Standard Algebraic Notation) string for the move.</param>
+    /// <param name="move">The move to apply.</param>
+    /// <param name="san">Optional SAN string for the move.</param>
     /// <returns>
-    /// The validation result. <see cref="MoveState.Ok"/> if the move was successfully applied;
-    /// otherwise, the specific validation failure.
+    /// <see cref="MoveState.Ok"/> if the move was applied successfully;
+    /// otherwise the specific validation failure.
     /// </returns>
-    public MoveState TryApplyMove(Move move, string? san = null)
+    public MoveState ApplyMove(Move move, string? san = null)
     {
         EnsureNotTerminated();
-        var state = MoveValidator.IsValidMove(move, CurrentPosition);
-        if (state != MoveState.Ok)
+
+        if (!_options.SkipValidation)
         {
-            return state;
+            var state = MoveValidator.IsValidMove(move, CurrentPosition);
+            if (state != MoveState.Ok)
+                return state;
         }
-        ApplyMove(move, san);
-        Evaluate();
-        return state;
+
+        ExecuteMove(move, san);
+
+        if (!_options.SkipEvaluation)
+            Evaluate();
+
+        return MoveState.Ok;
     }
 
-    /// <summary>
-    /// Applies a move without performing validation.
-    /// 
-    /// This method assumes the move is already known to be legal and executes it
-    /// with minimal overhead. It is optimized for performance-critical paths
-    /// (e.g., UCI engine move execution).
-    /// 
-    /// Responsibilities:
-    /// - Updates the game clock (if present)
-    /// - Detects timeout and determines the resulting game conclusion
-    /// - Updates repetition tracking and position hash (if enabled)
-    /// - Advances <see cref="CurrentPosition"/>
-    /// 
-    /// No validation or evaluation is performed.
-    /// </summary>
-    /// <param name="move">A pre-validated move to execute.</param>
-    /// <param name="san">Optional SAN (Standard Algebraic Notation) string for the move.</param>
-    public void ApplyMove(Move move, string? san = null)
+    private void ExecuteMove(Move move, string? san)
     {
         var color = CurrentPosition.SideToMove;
         TimeSpan? remaining = null;
@@ -160,12 +130,10 @@ public sealed class ChessGame
             return;
         }
 
-        if (positionHasher is not null)
-        {
-            _currentKey = positionHasher.Update(_currentKey, CurrentPosition, move, next);
-            _repetition.TryGetValue(_currentKey, out var count);
-            _repetition[_currentKey] = count + 1;
-        }
+        _currentKey = _hasher.Update(_currentKey, CurrentPosition, move, next);
+        _repetition.TryGetValue(_currentKey, out var count);
+        _repetition[_currentKey] = count + 1;
+
         UpdatePosition(next);
         OnMoveApplied?.Invoke(this, EventArgs.Empty);
     }
@@ -180,21 +148,11 @@ public sealed class ChessGame
     {
         EnsureNotTerminated();
 
-        var result = color == PieceColor.White
-            ? GameResult.BlackWin
-            : GameResult.WhiteWin;
-
         Conclusion = new GameConclusion(
             GameTermination.Resignation,
-            result,
+            color == PieceColor.White ? GameResult.BlackWin : GameResult.WhiteWin,
             color
         );
-    }
-
-    private void EnsureNotTerminated()
-    {
-        if (Conclusion is not null)
-            throw new InvalidOperationException("Game is already terminated.");
     }
 
     public void AcceptDraw(PieceColor color)
@@ -208,25 +166,9 @@ public sealed class ChessGame
         );
     }
 
-    public int? GetCurrentRepetitions()
+    private void EnsureNotTerminated()
     {
-        if (positionHasher is null)
-        {
-            return null;
-        }
-
-        if (_repetition.TryGetValue(_currentKey, out var count))
-        {
-            return count;
-        }
-        return 0;
+        if (Conclusion is not null)
+            throw new InvalidOperationException("Game is already terminated.");
     }
-
-    public ulong? CurrentHash => positionHasher is null ? null : _currentKey;
 }
-
-public sealed record GameConclusion(
-    GameTermination Termination,
-    GameResult Result,
-    PieceColor? AffectedPlayer = null
-);

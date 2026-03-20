@@ -126,8 +126,7 @@ public sealed class PgnTests
     public void CanTrackClock()
     {
         var clock = new ChessClock(TimeSpan.FromMinutes(3), TimeSpan.Zero);
-        var game = new ChessGame();
-        game.SetClock(clock);
+        var game = new ChessGame(new() {  Clock = clock });
 
         var move = new Move(new Square(4, 1), new Square(4, 3)); // e2e4
         game.ApplyMove(move);
