@@ -228,6 +228,61 @@ public sealed class ValidationTests
     }
 
     [TestMethod]
+    public void PseudoValidator_KingSafetyDetectsEveryAttackShape()
+    {
+        var kingFrom = new Square(4, 0);
+        var kingTo = new Square(4, 1);
+        var move = new Move(kingFrom, kingTo);
+        var testCases = new[]
+        {
+            CreatePosition(
+                PieceColor.White,
+                CastlingRights.None,
+                null,
+                (kingFrom, new Piece(PieceType.King, PieceColor.White)),
+                (new Square(0, 7), new Piece(PieceType.King, PieceColor.Black)),
+                (new Square(3, 2), new Piece(PieceType.Pawn, PieceColor.Black))),
+            CreatePosition(
+                PieceColor.White,
+                CastlingRights.None,
+                null,
+                (kingFrom, new Piece(PieceType.King, PieceColor.White)),
+                (new Square(0, 7), new Piece(PieceType.King, PieceColor.Black)),
+                (new Square(2, 2), new Piece(PieceType.Knight, PieceColor.Black))),
+            CreatePosition(
+                PieceColor.White,
+                CastlingRights.None,
+                null,
+                (kingFrom, new Piece(PieceType.King, PieceColor.White)),
+                (new Square(3, 2), new Piece(PieceType.King, PieceColor.Black))),
+            CreatePosition(
+                PieceColor.White,
+                CastlingRights.None,
+                null,
+                (kingFrom, new Piece(PieceType.King, PieceColor.White)),
+                (new Square(0, 7), new Piece(PieceType.King, PieceColor.Black)),
+                (new Square(4, 7), new Piece(PieceType.Rook, PieceColor.Black))),
+            CreatePosition(
+                PieceColor.White,
+                CastlingRights.None,
+                null,
+                (kingFrom, new Piece(PieceType.King, PieceColor.White)),
+                (new Square(0, 7), new Piece(PieceType.King, PieceColor.Black)),
+                (new Square(7, 4), new Piece(PieceType.Bishop, PieceColor.Black))),
+            CreatePosition(
+                PieceColor.White,
+                CastlingRights.None,
+                null,
+                (kingFrom, new Piece(PieceType.King, PieceColor.White)),
+                (new Square(0, 7), new Piece(PieceType.King, PieceColor.Black)),
+                (new Square(7, 1), new Piece(PieceType.Queen, PieceColor.Black)))
+        };
+
+        foreach (var pos in testCases)
+            Assert.AreEqual(MoveState.WouldBeCheck, PseudoMoveValidator.IsValidMove(move, pos));
+    }
+
+    [TestMethod]
     public void PseudoValidator_MatchesMoveValidatorForRepresentativeMoves()
     {
         var testCases = new[]

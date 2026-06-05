@@ -78,7 +78,7 @@ public sealed class ChessGame
 
         if (!_options.SkipValidation)
         {
-            var state = MoveValidator.IsValidMove(move, CurrentPosition);
+            var state = PseudoMoveValidator.IsValidMove(move, CurrentPosition);
             if (state != MoveState.Ok)
                 return state;
         }
