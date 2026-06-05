@@ -5,50 +5,51 @@ public static partial class MoveValidator
 {
     public static MoveState IsValidMove(Move move, BoardPosition pos)
     {
-        ArgumentNullException.ThrowIfNull(move);
-        ArgumentNullException.ThrowIfNull(pos);
+        return PseudoMoveValidator.IsValidMove(move, pos);
+        // ArgumentNullException.ThrowIfNull(move);
+        // ArgumentNullException.ThrowIfNull(pos);
 
-        var piece = pos.Board[move.From.Index];
+        // var piece = pos.Board[move.From.Index];
 
-        if (!piece.HasValue)
-            return MoveState.PieceNotFound;
+        // if (!piece.HasValue)
+        //     return MoveState.PieceNotFound;
 
-        if (piece.Value.Color != pos.SideToMove)
-            return MoveState.WrongColor;
+        // if (piece.Value.Color != pos.SideToMove)
+        //     return MoveState.WrongColor;
 
-        var validSquares = GetValidSquares(move.From, piece.Value.Type, pos);
+        // var validSquares = GetValidSquares(move.From, piece.Value.Type, pos);
 
-        if (!validSquares.Contains(move.To))
-            return MoveState.TargetInvalid;
+        // if (!validSquares.Contains(move.To))
+        //     return MoveState.TargetInvalid;
 
-        if (move.MoveType.HasFlag(MoveType.CastlingKingSide) || move.MoveType.HasFlag(MoveType.CastlingQueenSide))
-        {
-            var requiredRight = (piece.Value.Color, move.MoveType.HasFlag(MoveType.CastlingKingSide)) switch
-            {
-                (PieceColor.White, true) => CastlingRights.WhiteKingSide,
-                (PieceColor.White, false) => CastlingRights.WhiteQueenSide,
-                (PieceColor.Black, true) => CastlingRights.BlackKingSide,
-                (PieceColor.Black, false) => CastlingRights.BlackQueenSide,
-                _ => CastlingRights.None
-            };
+        // if (move.MoveType.HasFlag(MoveType.CastlingKingSide) || move.MoveType.HasFlag(MoveType.CastlingQueenSide))
+        // {
+        //     var requiredRight = (piece.Value.Color, move.MoveType.HasFlag(MoveType.CastlingKingSide)) switch
+        //     {
+        //         (PieceColor.White, true) => CastlingRights.WhiteKingSide,
+        //         (PieceColor.White, false) => CastlingRights.WhiteQueenSide,
+        //         (PieceColor.Black, true) => CastlingRights.BlackKingSide,
+        //         (PieceColor.Black, false) => CastlingRights.BlackQueenSide,
+        //         _ => CastlingRights.None
+        //     };
 
-            if (!pos.CastlingRights.HasFlag(requiredRight))
-            {
-                return MoveState.CastleNotAllowed;
-            }
-            if (!IsCastlingPathSafe(move.From, move.To, piece.Value.Color, pos))
-                return MoveState.CastlingPathAttacked;
-        }
+        //     if (!pos.CastlingRights.HasFlag(requiredRight))
+        //     {
+        //         return MoveState.CastleNotAllowed;
+        //     }
+        //     if (!IsCastlingPathSafe(move.From, move.To, piece.Value.Color, pos))
+        //         return MoveState.CastlingPathAttacked;
+        // }
 
-        var newPos = pos.MakeMove(move);
-        var kingSquare = piece.Value.Type == PieceType.King
-            ? move.To
-            : pos.Board.GetKingSquare(piece.Value.Color);
+        // var newPos = pos.MakeMove(move);
+        // var kingSquare = piece.Value.Type == PieceType.King
+        //     ? move.To
+        //     : pos.Board.GetKingSquare(piece.Value.Color);
 
-        if (IsSquareAttacked(kingSquare, piece.Value.Color, newPos))
-            return MoveState.WouldBeCheck;
+        // if (IsSquareAttacked(kingSquare, piece.Value.Color, newPos))
+        //     return MoveState.WouldBeCheck;
 
-        return MoveState.Ok;
+        // return MoveState.Ok;
     }
 
     public static IReadOnlyCollection<Move> GetValidMoves(Square from, BoardPosition pos, out MoveState moveState)
