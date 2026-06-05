@@ -17,7 +17,7 @@ internal static class GameOutcomeEvaluator
             return new(GameResult.Draw, GameTermination.FivefoldRepetition);
         }
 
-        var gameState = MoveValidator.GetGameState(position);
+        var gameState = PseudoMoveValidator.GetGameState(position);
 
         if (gameState == GameState.Checkmate)
         {

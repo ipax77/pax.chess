@@ -58,12 +58,24 @@ public class MoveValidatorBenchmarks
         => MoveValidator.GetGameState(_startPosition);
 
     [Benchmark]
+    public GameState PseudoGetGameState_StartPosition()
+        => PseudoMoveValidator.GetGameState(_startPosition);
+
+    [Benchmark]
     public GameState GetGameState_Checkmate()
         => MoveValidator.GetGameState(_checkmatePosition);
 
     [Benchmark]
+    public GameState PseudoGetGameState_Checkmate()
+        => PseudoMoveValidator.GetGameState(_checkmatePosition);
+
+    [Benchmark]
     public GameState GetGameState_MiddleGame()
         => MoveValidator.GetGameState(_middleGamePosition);
+
+    [Benchmark]
+    public GameState PseudoGetGameState_MiddleGame()
+        => PseudoMoveValidator.GetGameState(_middleGamePosition);
 
     // --- GetValidMoves ---
 

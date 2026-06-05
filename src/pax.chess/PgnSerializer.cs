@@ -397,7 +397,7 @@ public static partial class PgnSerializer
     private static string GetCheckSuffix(Move move, BoardPosition pos)
     {
         var nextPos = pos.MakeMove(move);
-        var state = MoveValidator.GetGameState(nextPos);
+        var state = PseudoMoveValidator.GetGameState(nextPos);
         return state switch
         {
             GameState.Checkmate => "#",

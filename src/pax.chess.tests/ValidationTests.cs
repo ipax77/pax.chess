@@ -303,6 +303,55 @@ public sealed class ValidationTests
     }
 
     [TestMethod]
+    public void PseudoValidator_GetGameStateMatchesMoveValidator()
+    {
+        var pinnedPosition = CreatePosition(
+            PieceColor.White,
+            CastlingRights.None,
+            null,
+            (new Square(4, 0), new Piece(PieceType.King, PieceColor.White)),
+            (new Square(6, 7), new Piece(PieceType.King, PieceColor.Black)),
+            (new Square(4, 1), new Piece(PieceType.Rook, PieceColor.White)),
+            (new Square(4, 7), new Piece(PieceType.Rook, PieceColor.Black)));
+        var castlingAvailablePosition = CreatePosition(
+            PieceColor.White,
+            CastlingRights.WhiteKingSide,
+            null,
+            (new Square(4, 0), new Piece(PieceType.King, PieceColor.White)),
+            (new Square(7, 0), new Piece(PieceType.Rook, PieceColor.White)),
+            (new Square(4, 7), new Piece(PieceType.King, PieceColor.Black)));
+        var castlingPathAttackedPosition = CreatePosition(
+            PieceColor.White,
+            CastlingRights.WhiteKingSide,
+            null,
+            (new Square(4, 0), new Piece(PieceType.King, PieceColor.White)),
+            (new Square(7, 0), new Piece(PieceType.Rook, PieceColor.White)),
+            (new Square(4, 7), new Piece(PieceType.King, PieceColor.Black)),
+            (new Square(5, 7), new Piece(PieceType.Rook, PieceColor.Black)));
+        var enPassantPinnedPosition = FenSerializer.Parse("4r2k/8/8/3pP3/8/8/8/4K3 w - d6 0 1");
+
+        var testCases = new[]
+        {
+            BoardPosition.CreateInitial(),
+            FenSerializer.Parse("2r3k1/6pp/p3pp1B/2bn4/2pK3P/3b1PR1/P7/3R4 w - - 2 31"),
+            FenSerializer.Parse("5k2/5P2/5K2/8/8/8/8/8 b - - 0 1"),
+            FenSerializer.Parse("4k3/8/4r3/8/8/8/8/4K3 w - - 0 1"),
+            pinnedPosition,
+            castlingAvailablePosition,
+            castlingPathAttackedPosition,
+            enPassantPinnedPosition
+        };
+
+        foreach (var pos in testCases)
+        {
+            var expected = MoveValidator.GetGameState(pos);
+            var actual = PseudoMoveValidator.GetGameState(pos);
+
+            Assert.AreEqual(expected, actual);
+        }
+    }
+
+    [TestMethod]
     public void Fen_Checkmate()
     {
         string fen = "2r3k1/6pp/p3pp1B/2bn4/2pK3P/3b1PR1/P7/3R4 w - - 2 31";
