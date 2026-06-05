@@ -1,11 +1,10 @@
-
 using BenchmarkDotNet.Attributes;
 using pax.chess.Validation;
 
 namespace pax.chess.benchmark;
 
 [MemoryDiagnoser]
-public class MoveValidatorBenchmarks
+public class PseudoMoveValidatorBenchmarks
 {
     private BoardPosition _startPosition = null!;
     private BoardPosition _checkmatePosition = null!;
@@ -51,104 +50,64 @@ public class MoveValidatorBenchmarks
             MoveType.CastlingKingSide);
     }
 
-    // --- GetGameState ---
-
     [Benchmark]
     public GameState GetGameState_StartPosition()
-        => MoveValidator.GetGameState(_startPosition);
-
-    [Benchmark]
-    public GameState PseudoGetGameState_StartPosition()
         => PseudoMoveValidator.GetGameState(_startPosition);
 
     [Benchmark]
     public GameState GetGameState_Checkmate()
-        => MoveValidator.GetGameState(_checkmatePosition);
-
-    [Benchmark]
-    public GameState PseudoGetGameState_Checkmate()
         => PseudoMoveValidator.GetGameState(_checkmatePosition);
 
     [Benchmark]
     public GameState GetGameState_MiddleGame()
-        => MoveValidator.GetGameState(_middleGamePosition);
-
-    [Benchmark]
-    public GameState PseudoGetGameState_MiddleGame()
         => PseudoMoveValidator.GetGameState(_middleGamePosition);
-
-    // --- GetValidMoves ---
 
     [Benchmark]
     public IReadOnlyCollection<Move> GetValidMoves_Knight()
     {
-        var square = new Square(1, 0); // b1 knight in start position
-        return MoveValidator.GetValidMoves(square, _startPosition, out _);
+        var square = new Square(1, 0);
+        return PseudoMoveValidator.GetValidMoves(square, _startPosition, out _);
     }
 
     [Benchmark]
     public IReadOnlyCollection<Move> GetValidMoves_Queen_MiddleGame()
     {
-        var square = new Square(3, 0); // d1 queen
-        return MoveValidator.GetValidMoves(square, _middleGamePosition, out _);
+        var square = new Square(3, 0);
+        return PseudoMoveValidator.GetValidMoves(square, _middleGamePosition, out _);
     }
-
-    // --- IsSquareAttacked ---
 
     [Benchmark]
     public bool IsSquareAttacked_KingSafe()
     {
         var kingSquare = _startPosition.Board.GetKingSquare(PieceColor.White);
-        return MoveValidator.IsSquareAttacked(kingSquare, PieceColor.White, _startPosition);
+        return PseudoMoveValidator.IsSquareAttacked(kingSquare, PieceColor.White, _startPosition);
     }
 
     [Benchmark]
     public bool IsSquareAttacked_Checkmate()
     {
         var kingSquare = _checkmatePosition.Board.GetKingSquare(PieceColor.White);
-        return MoveValidator.IsSquareAttacked(kingSquare, PieceColor.White, _checkmatePosition);
+        return PseudoMoveValidator.IsSquareAttacked(kingSquare, PieceColor.White, _checkmatePosition);
     }
 
-    // --- IsValidMove: MoveValidator vs PseudoMoveValidator ---
-
     [Benchmark(Baseline = true)]
-    public MoveState MoveValidator_IsValidMove_LegalOpeningPawn()
-        => MoveValidator.IsValidMove(_legalOpeningPawnMove, _startPosition);
-
-    [Benchmark]
-    public MoveState PseudoMoveValidator_IsValidMove_LegalOpeningPawn()
+    public MoveState IsValidMove_LegalOpeningPawn()
         => PseudoMoveValidator.IsValidMove(_legalOpeningPawnMove, _startPosition);
 
     [Benchmark]
-    public MoveState MoveValidator_IsValidMove_IllegalPawnOverAdvance()
-        => MoveValidator.IsValidMove(_illegalPawnOverAdvanceMove, _startPosition);
-
-    [Benchmark]
-    public MoveState PseudoMoveValidator_IsValidMove_IllegalPawnOverAdvance()
+    public MoveState IsValidMove_IllegalPawnOverAdvance()
         => PseudoMoveValidator.IsValidMove(_illegalPawnOverAdvanceMove, _startPosition);
 
     [Benchmark]
-    public MoveState MoveValidator_IsValidMove_LegalKnight()
-        => MoveValidator.IsValidMove(_legalKnightMove, _startPosition);
-
-    [Benchmark]
-    public MoveState PseudoMoveValidator_IsValidMove_LegalKnight()
+    public MoveState IsValidMove_LegalKnight()
         => PseudoMoveValidator.IsValidMove(_legalKnightMove, _startPosition);
 
     [Benchmark]
-    public MoveState MoveValidator_IsValidMove_PinnedMove()
-        => MoveValidator.IsValidMove(_pinnedMove, _pinnedPosition);
-
-    [Benchmark]
-    public MoveState PseudoMoveValidator_IsValidMove_PinnedMove()
+    public MoveState IsValidMove_PinnedMove()
         => PseudoMoveValidator.IsValidMove(_pinnedMove, _pinnedPosition);
 
     [Benchmark]
-    public MoveState MoveValidator_IsValidMove_CastlingPathAttacked()
-        => MoveValidator.IsValidMove(_castlingPathAttackedMove, _castlingPathAttackedPosition);
-
-    [Benchmark]
-    public MoveState PseudoMoveValidator_IsValidMove_CastlingPathAttacked()
+    public MoveState IsValidMove_CastlingPathAttacked()
         => PseudoMoveValidator.IsValidMove(_castlingPathAttackedMove, _castlingPathAttackedPosition);
 
     private static BoardPosition CreatePosition(

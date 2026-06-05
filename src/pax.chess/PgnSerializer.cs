@@ -236,8 +236,8 @@ public static partial class PgnSerializer
             foreach (var pPiece in potentialPieces)
             {
                 MoveState moveState = MoveState.Ok;
-                var validSquares = MoveValidator.GetValidMoves(pPiece.Square, pos, out moveState).Select(s => s.To).ToList();
-                if (validSquares.Contains(destination))
+                var validMoves = PseudoMoveValidator.GetValidMoves(pPiece.Square, pos, out moveState);
+                if (validMoves.Any(s => s.To == destination))
                 {
                     fromSquare = pPiece.Square;
                     break;
@@ -355,7 +355,7 @@ public static partial class PgnSerializer
 
             foreach (var amb in ambassadors)
             {
-                var moves = MoveValidator.GetValidMoves(amb.Square, pos, out _);
+                var moves = PseudoMoveValidator.GetValidMoves(amb.Square, pos, out _);
                 if (moves.Any(m => m.To == move.To))
                 {
                     ambiguous = true;

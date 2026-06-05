@@ -80,7 +80,7 @@ public static partial class PseudoMoveValidator
             ? move.To
             : pos.Board.GetKingSquare(piece.Color);
 
-        if (IsSquareAttackedAfterMove(kingSquare, piece.Color, pos, move, piece))
+        if (IsSquareAttackedAfterMove(kingSquare, piece.Color, pos, move.From, move.To, piece))
             return MoveState.WouldBeCheck;
 
         return MoveState.Ok;
@@ -171,9 +171,9 @@ public static partial class PseudoMoveValidator
         int direction = to.File > from.File ? 1 : -1;
         var passingSquare = new Square(from.File + direction, from.Rank);
 
-        return !IsSquareAttacked(from, color, pos) &&
-               !IsSquareAttacked(passingSquare, color, pos) &&
-               !IsSquareAttacked(to, color, pos);
+        return !IsSquareAttackedCore(from, color, pos) &&
+               !IsSquareAttackedCore(passingSquare, color, pos) &&
+               !IsSquareAttackedCore(to, color, pos);
     }
 
     private static bool IsPieceAt(

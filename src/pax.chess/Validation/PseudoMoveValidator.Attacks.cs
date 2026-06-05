@@ -21,7 +21,17 @@ public static partial class PseudoMoveValidator
     private static readonly int[][] knightTargets = CreateTargets(knightAttackDirections);
     private static readonly int[][] kingTargets = CreateTargets(kingAttackDirections);
 
-    private static bool IsSquareAttacked(
+    public static bool IsSquareAttacked(
+        Square square,
+        PieceColor defenderColor,
+        BoardPosition pos)
+    {
+        ArgumentNullException.ThrowIfNull(pos);
+
+        return IsSquareAttackedCore(square, defenderColor, pos);
+    }
+
+    private static bool IsSquareAttackedCore(
         Square square,
         PieceColor defenderColor,
         BoardPosition pos)
@@ -40,37 +50,39 @@ public static partial class PseudoMoveValidator
         Square square,
         PieceColor defenderColor,
         BoardPosition pos,
-        Move move,
+        Square moveFrom,
+        Square moveTo,
         Piece movingPiece)
     {
         var attackerColor = defenderColor == PieceColor.White
             ? PieceColor.Black
             : PieceColor.White;
 
-        return IsAttackedByPawnAfterMove(square, attackerColor, pos, move, movingPiece) ||
-               IsAttackedByKnightAfterMove(square, attackerColor, pos, move, movingPiece) ||
-               IsAttackedByKingAfterMove(square, attackerColor, pos, move, movingPiece) ||
-               IsAttackedBySlidingPieceAfterMove(square, attackerColor, pos, move, movingPiece);
+        return IsAttackedByPawnAfterMove(square, attackerColor, pos, moveFrom, moveTo, movingPiece) ||
+               IsAttackedByKnightAfterMove(square, attackerColor, pos, moveFrom, moveTo, movingPiece) ||
+               IsAttackedByKingAfterMove(square, attackerColor, pos, moveFrom, moveTo, movingPiece) ||
+               IsAttackedBySlidingPieceAfterMove(square, attackerColor, pos, moveFrom, moveTo, movingPiece);
     }
 
     private static Piece? GetPieceAfterMove(
         BoardPosition pos,
-        Move move,
+        Square moveFrom,
+        Square moveTo,
         Piece movingPiece,
         Square square)
     {
-        if (square == move.From)
+        if (square == moveFrom)
             return null;
 
-        if (IsEnPassantCapture(pos, move, movingPiece))
+        if (IsEnPassantCapture(pos, moveFrom, moveTo, movingPiece))
         {
-            var capturedSquare = new Square(move.To.File, move.From.Rank);
+            var capturedSquare = new Square(moveTo.File, moveFrom.Rank);
 
             if (square == capturedSquare)
                 return null;
         }
 
-        if (TryGetCastlingRookSquares(move, movingPiece, out var rookFrom, out var rookTo))
+        if (TryGetCastlingRookSquares(moveFrom, moveTo, movingPiece, out var rookFrom, out var rookTo))
         {
             if (square == rookFrom)
                 return null;
@@ -79,7 +91,7 @@ public static partial class PseudoMoveValidator
                 return new Piece(PieceType.Rook, movingPiece.Color);
         }
 
-        if (square == move.To)
+        if (square == moveTo)
             return movingPiece;
 
         return pos.Board[square.Index];
@@ -112,7 +124,8 @@ public static partial class PseudoMoveValidator
         Square square,
         PieceColor attackerColor,
         BoardPosition pos,
-        Move move,
+        Square moveFrom,
+        Square moveTo,
         Piece movingPiece)
     {
         int pawnRankDelta = attackerColor == PieceColor.White ? -1 : 1;
@@ -123,14 +136,14 @@ public static partial class PseudoMoveValidator
 
         int leftSourceFile = square.File - 1;
         if ((uint)leftSourceFile <= 7 &&
-            IsPieceAtAfterMove(new Square(leftSourceFile, sourceRank), PieceType.Pawn, attackerColor, pos, move, movingPiece))
+            IsPieceAtAfterMove(new Square(leftSourceFile, sourceRank), PieceType.Pawn, attackerColor, pos, moveFrom, moveTo, movingPiece))
         {
             return true;
         }
 
         int rightSourceFile = square.File + 1;
         return (uint)rightSourceFile <= 7 &&
-               IsPieceAtAfterMove(new Square(rightSourceFile, sourceRank), PieceType.Pawn, attackerColor, pos, move, movingPiece);
+               IsPieceAtAfterMove(new Square(rightSourceFile, sourceRank), PieceType.Pawn, attackerColor, pos, moveFrom, moveTo, movingPiece);
     }
 
     private static bool IsAttackedByKnight(
@@ -156,12 +169,13 @@ public static partial class PseudoMoveValidator
         Square square,
         PieceColor attackerColor,
         BoardPosition pos,
-        Move move,
+        Square moveFrom,
+        Square moveTo,
         Piece movingPiece)
     {
         foreach (int attackerIndex in knightTargets[square.Index])
         {
-            var piece = GetPieceAfterMove(pos, move, movingPiece, new Square(attackerIndex));
+            var piece = GetPieceAfterMove(pos, moveFrom, moveTo, movingPiece, new Square(attackerIndex));
 
             if (piece is { Type: PieceType.Knight, Color: var color } &&
                 color == attackerColor)
@@ -196,12 +210,13 @@ public static partial class PseudoMoveValidator
         Square square,
         PieceColor attackerColor,
         BoardPosition pos,
-        Move move,
+        Square moveFrom,
+        Square moveTo,
         Piece movingPiece)
     {
         foreach (int attackerIndex in kingTargets[square.Index])
         {
-            var piece = GetPieceAfterMove(pos, move, movingPiece, new Square(attackerIndex));
+            var piece = GetPieceAfterMove(pos, moveFrom, moveTo, movingPiece, new Square(attackerIndex));
 
             if (piece is { Type: PieceType.King, Color: var color } &&
                 color == attackerColor)
@@ -238,14 +253,16 @@ public static partial class PseudoMoveValidator
         Square square,
         PieceColor attackerColor,
         BoardPosition pos,
-        Move move,
+        Square moveFrom,
+        Square moveTo,
         Piece movingPiece)
     {
         return IsAttackedAlongDirectionsAfterMove(
                    square,
                    attackerColor,
                    pos,
-                   move,
+                   moveFrom,
+                   moveTo,
                    movingPiece,
                    rookDirections,
                    PieceType.Rook,
@@ -254,7 +271,8 @@ public static partial class PseudoMoveValidator
                    square,
                    attackerColor,
                    pos,
-                   move,
+                   moveFrom,
+                   moveTo,
                    movingPiece,
                    bishopDirections,
                    PieceType.Bishop,
@@ -303,7 +321,8 @@ public static partial class PseudoMoveValidator
         Square square,
         PieceColor attackerColor,
         BoardPosition pos,
-        Move move,
+        Square moveFrom,
+        Square moveTo,
         Piece movingPiece,
         ReadOnlySpan<(int FileDelta, int RankDelta)> directions,
         PieceType pieceTypeA,
@@ -317,7 +336,7 @@ public static partial class PseudoMoveValidator
             while ((uint)file <= 7 && (uint)rank <= 7)
             {
                 var candidate = new Square(file, rank);
-                var piece = GetPieceAfterMove(pos, move, movingPiece, candidate);
+                var piece = GetPieceAfterMove(pos, moveFrom, moveTo, movingPiece, candidate);
 
                 if (piece.HasValue)
                 {
@@ -344,10 +363,11 @@ public static partial class PseudoMoveValidator
         PieceType pieceType,
         PieceColor color,
         BoardPosition pos,
-        Move move,
+        Square moveFrom,
+        Square moveTo,
         Piece movingPiece)
     {
-        var piece = GetPieceAfterMove(pos, move, movingPiece, square);
+        var piece = GetPieceAfterMove(pos, moveFrom, moveTo, movingPiece, square);
 
         return piece is { Type: var type, Color: var pieceColor } &&
                type == pieceType &&
@@ -356,17 +376,19 @@ public static partial class PseudoMoveValidator
 
     private static bool IsEnPassantCapture(
         BoardPosition pos,
-        Move move,
+        Square moveFrom,
+        Square moveTo,
         Piece movingPiece)
     {
         return movingPiece.Type == PieceType.Pawn &&
-               move.To == pos.EnPassantTarget &&
-               move.From.File != move.To.File &&
-               !pos.Board[move.To.Index].HasValue;
+               moveTo == pos.EnPassantTarget &&
+               moveFrom.File != moveTo.File &&
+               !pos.Board[moveTo.Index].HasValue;
     }
 
     private static bool TryGetCastlingRookSquares(
-        Move move,
+        Square moveFrom,
+        Square moveTo,
         Piece movingPiece,
         out Square rookFrom,
         out Square rookTo)
@@ -374,11 +396,11 @@ public static partial class PseudoMoveValidator
         rookFrom = default;
         rookTo = default;
 
-        if (movingPiece.Type != PieceType.King || Math.Abs(move.To.File - move.From.File) != 2)
+        if (movingPiece.Type != PieceType.King || Math.Abs(moveTo.File - moveFrom.File) != 2)
             return false;
 
-        bool kingSide = move.To.File > move.From.File;
-        int rank = move.From.Rank;
+        bool kingSide = moveTo.File > moveFrom.File;
+        int rank = moveFrom.Rank;
 
         rookFrom = kingSide
             ? new Square(7, rank)

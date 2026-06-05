@@ -107,7 +107,7 @@ public sealed class ChessGame
                     ? PieceColor.Black
                     : PieceColor.White;
 
-                var result = MoveValidator.IsWinnable(CurrentPosition, opponent)
+                var result = PseudoMoveValidator.IsWinnable(CurrentPosition, opponent)
                     ? (color == PieceColor.White ? GameResult.BlackWin : GameResult.WhiteWin)
                     : GameResult.Draw;
 

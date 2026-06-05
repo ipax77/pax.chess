@@ -8,7 +8,7 @@ public static partial class PseudoMoveValidator
 
         var sideToMove = pos.SideToMove;
         var kingSquare = pos.Board.GetKingSquare(sideToMove);
-        bool inCheck = IsSquareAttacked(kingSquare, sideToMove, pos);
+        bool inCheck = IsSquareAttackedCore(kingSquare, sideToMove, pos);
         bool hasLegalMove = HasAnyLegalMove(pos);
 
         return (inCheck, hasLegalMove) switch
@@ -224,20 +224,6 @@ public static partial class PseudoMoveValidator
         Piece piece,
         BoardPosition pos)
     {
-        var moveType = MoveType.None;
-
-        if (piece.Type == PieceType.King && IsKingCastlingShape(from, to, piece.Color))
-        {
-            moveType = to.File > from.File
-                ? MoveType.CastlingKingSide
-                : MoveType.CastlingQueenSide;
-        }
-
-        var move = new Move(from, to, null, moveType);
-        var kingSquare = piece.Type == PieceType.King
-            ? to
-            : pos.Board.GetKingSquare(piece.Color);
-
-        return !IsSquareAttackedAfterMove(kingSquare, piece.Color, pos, move, piece);
+        return TryCreateLegalMove(from, to, piece, pos, out _);
     }
 }

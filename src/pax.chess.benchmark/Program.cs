@@ -4,4 +4,4 @@ using pax.chess.benchmark;
 
 Console.WriteLine("Hello, World!");
 
-BenchmarkRunner.Run<MoveValidatorBenchmarks>();
+BenchmarkRunner.Run<PseudoMoveValidatorBenchmarks>();

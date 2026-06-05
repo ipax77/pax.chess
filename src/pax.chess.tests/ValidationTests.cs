@@ -18,7 +18,7 @@ public sealed class ValidationTests
         var move2 = new Move(from2, to2);
         newpos = newpos.MakeMove(move2);
 
-        var isAttacked = MoveValidator.IsSquareAttacked(to1, PieceColor.White, newpos);
+        var isAttacked = PseudoMoveValidator.IsSquareAttacked(to1, PieceColor.White, newpos);
         Assert.IsTrue(isAttacked);
     }
 
@@ -29,7 +29,7 @@ public sealed class ValidationTests
         var from1 = new Square(4, 1);
         var to1 = new Square(4, 3);
         var move1 = new Move(from1, to1);
-        var moveState = MoveValidator.IsValidMove(move1, pos);
+        var moveState = PseudoMoveValidator.IsValidMove(move1, pos);
         Assert.AreEqual(MoveState.Ok, moveState);
     }
 
@@ -40,7 +40,7 @@ public sealed class ValidationTests
         var from1 = new Square(4, 1);
         var to1 = new Square(4, 4);
         var move1 = new Move(from1, to1);
-        var moveState = MoveValidator.IsValidMove(move1, pos);
+        var moveState = PseudoMoveValidator.IsValidMove(move1, pos);
         Assert.AreEqual(MoveState.TargetInvalid, moveState);
     }
 
@@ -288,11 +288,9 @@ public sealed class ValidationTests
         var pos = FenSerializer.Parse("4k3/8/8/r2pP2K/8/8/8/8 w - d6 0 1");
         var move = new Move(new Square(4, 4), new Square(3, 5), null, MoveType.EnPassant);
 
-        var expected = MoveValidator.IsValidMove(move, pos);
         var actual = PseudoMoveValidator.IsValidMove(move, pos);
 
         Assert.AreEqual(MoveState.WouldBeCheck, actual);
-        Assert.AreEqual(expected, actual);
     }
 
     [TestMethod]
@@ -301,30 +299,27 @@ public sealed class ValidationTests
         var pos = FenSerializer.Parse("r4b1K/6P1/8/8/8/8/8/4k3 w - - 0 1");
         var move = new Move(new Square(6, 6), new Square(5, 7), PieceType.Queen, MoveType.Capture | MoveType.Promotion);
 
-        var expected = MoveValidator.IsValidMove(move, pos);
         var actual = PseudoMoveValidator.IsValidMove(move, pos);
 
         Assert.AreEqual(MoveState.Ok, actual);
-        Assert.AreEqual(expected, actual);
     }
 
     [TestMethod]
-    public void PseudoValidator_MatchesMoveValidatorForRepresentativeMoves()
+    public void PseudoValidator_RepresentativeMovesHaveExpectedStates()
     {
         var testCases = new[]
         {
-            (Position: BoardPosition.CreateInitial(), Move: new Move(new Square(4, 1), new Square(4, 3))),
-            (Position: BoardPosition.CreateInitial(), Move: new Move(new Square(4, 1), new Square(4, 4))),
-            (Position: BoardPosition.CreateInitial(), Move: new Move(new Square(1, 0), new Square(2, 2))),
-            (Position: FenSerializer.Parse("4k3/8/8/8/8/8/4R3/4K3 w - - 0 1"), Move: new Move(new Square(4, 1), new Square(5, 1)))
+            (Position: BoardPosition.CreateInitial(), Move: new Move(new Square(4, 1), new Square(4, 3)), Expected: MoveState.Ok),
+            (Position: BoardPosition.CreateInitial(), Move: new Move(new Square(4, 1), new Square(4, 4)), Expected: MoveState.TargetInvalid),
+            (Position: BoardPosition.CreateInitial(), Move: new Move(new Square(1, 0), new Square(2, 2)), Expected: MoveState.Ok),
+            (Position: FenSerializer.Parse("4k3/8/8/8/8/8/4R3/4K3 w - - 0 1"), Move: new Move(new Square(4, 1), new Square(5, 1)), Expected: MoveState.Ok)
         };
 
         foreach (var testCase in testCases)
         {
-            var expected = MoveValidator.IsValidMove(testCase.Move, testCase.Position);
             var actual = PseudoMoveValidator.IsValidMove(testCase.Move, testCase.Position);
 
-            Assert.AreEqual(expected, actual);
+            Assert.AreEqual(testCase.Expected, actual);
         }
     }
 
@@ -340,7 +335,7 @@ public sealed class ValidationTests
     }
 
     [TestMethod]
-    public void PseudoValidator_GetGameStateMatchesMoveValidator()
+    public void PseudoValidator_GetGameStateReturnsExpectedStates()
     {
         var pinnedPosition = CreatePosition(
             PieceColor.White,
@@ -369,23 +364,63 @@ public sealed class ValidationTests
 
         var testCases = new[]
         {
-            BoardPosition.CreateInitial(),
-            FenSerializer.Parse("2r3k1/6pp/p3pp1B/2bn4/2pK3P/3b1PR1/P7/3R4 w - - 2 31"),
-            FenSerializer.Parse("5k2/5P2/5K2/8/8/8/8/8 b - - 0 1"),
-            FenSerializer.Parse("4k3/8/4r3/8/8/8/8/4K3 w - - 0 1"),
-            pinnedPosition,
-            castlingAvailablePosition,
-            castlingPathAttackedPosition,
-            enPassantPinnedPosition
+            (Position: BoardPosition.CreateInitial(), Expected: GameState.Normal),
+            (Position: FenSerializer.Parse("2r3k1/6pp/p3pp1B/2bn4/2pK3P/3b1PR1/P7/3R4 w - - 2 31"), Expected: GameState.Checkmate),
+            (Position: FenSerializer.Parse("5k2/5P2/5K2/8/8/8/8/8 b - - 0 1"), Expected: GameState.Stalemate),
+            (Position: FenSerializer.Parse("4k3/8/4r3/8/8/8/8/4K3 w - - 0 1"), Expected: GameState.Check),
+            (Position: pinnedPosition, Expected: GameState.Normal),
+            (Position: castlingAvailablePosition, Expected: GameState.Normal),
+            (Position: castlingPathAttackedPosition, Expected: GameState.Normal),
+            (Position: enPassantPinnedPosition, Expected: GameState.Normal)
         };
 
-        foreach (var pos in testCases)
+        foreach (var testCase in testCases)
         {
-            var expected = MoveValidator.GetGameState(pos);
-            var actual = PseudoMoveValidator.GetGameState(pos);
+            var actual = PseudoMoveValidator.GetGameState(testCase.Position);
 
-            Assert.AreEqual(expected, actual);
+            Assert.AreEqual(testCase.Expected, actual);
         }
+    }
+
+    [TestMethod]
+    public void PseudoValidator_GetValidMovesFiltersIllegalPinnedMove()
+    {
+        var pos = CreatePosition(
+            PieceColor.White,
+            CastlingRights.None,
+            null,
+            (new Square(4, 0), new Piece(PieceType.King, PieceColor.White)),
+            (new Square(6, 7), new Piece(PieceType.King, PieceColor.Black)),
+            (new Square(4, 1), new Piece(PieceType.Rook, PieceColor.White)),
+            (new Square(4, 7), new Piece(PieceType.Rook, PieceColor.Black)));
+
+        var moves = PseudoMoveValidator.GetValidMoves(new Square(4, 1), pos, out var moveState);
+
+        Assert.AreEqual(MoveState.Ok, moveState);
+        Assert.IsFalse(moves.Any(m => m.To == new Square(5, 1)));
+    }
+
+    [TestMethod]
+    public void PseudoValidator_IsWinnableMatchesMaterialRules()
+    {
+        var initial = BoardPosition.CreateInitial();
+        var kingsOnly = CreatePosition(
+            PieceColor.White,
+            CastlingRights.None,
+            null,
+            (new Square(4, 0), new Piece(PieceType.King, PieceColor.White)),
+            (new Square(4, 7), new Piece(PieceType.King, PieceColor.Black)));
+        var knightOnly = CreatePosition(
+            PieceColor.White,
+            CastlingRights.None,
+            null,
+            (new Square(4, 0), new Piece(PieceType.King, PieceColor.White)),
+            (new Square(1, 0), new Piece(PieceType.Knight, PieceColor.White)),
+            (new Square(4, 7), new Piece(PieceType.King, PieceColor.Black)));
+
+        Assert.IsTrue(PseudoMoveValidator.IsWinnable(initial, PieceColor.White));
+        Assert.IsFalse(PseudoMoveValidator.IsWinnable(kingsOnly, PieceColor.White));
+        Assert.IsTrue(PseudoMoveValidator.IsWinnable(knightOnly, PieceColor.White));
     }
 
     [TestMethod]
@@ -393,7 +428,7 @@ public sealed class ValidationTests
     {
         string fen = "2r3k1/6pp/p3pp1B/2bn4/2pK3P/3b1PR1/P7/3R4 w - - 2 31";
         var pos = FenSerializer.Parse(fen);
-        var result = MoveValidator.GetGameState(pos);
+        var result = PseudoMoveValidator.GetGameState(pos);
         Assert.AreEqual(GameState.Checkmate, result);
     }
     
@@ -403,7 +438,7 @@ public sealed class ValidationTests
         // Classic stalemate - black king has no legal moves but is not in check
         string fen = "5k2/5P2/5K2/8/8/8/8/8 b - - 0 1";
         var pos = FenSerializer.Parse(fen);
-        var result = MoveValidator.GetGameState(pos);
+        var result = PseudoMoveValidator.GetGameState(pos);
         Assert.AreEqual(GameState.Stalemate, result);
     }
 
@@ -413,7 +448,7 @@ public sealed class ValidationTests
         // King is in check but has escape moves
         string fen = "4k3/8/4r3/8/8/8/8/4K3 w - - 0 1";
         var pos = FenSerializer.Parse(fen);
-        var result = MoveValidator.GetGameState(pos);
+        var result = PseudoMoveValidator.GetGameState(pos);
         Assert.AreEqual(GameState.Check, result);
     }
 
@@ -423,7 +458,7 @@ public sealed class ValidationTests
         // Starting position - nothing special
         string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         var pos = FenSerializer.Parse(fen);
-        var result = MoveValidator.GetGameState(pos);
+        var result = PseudoMoveValidator.GetGameState(pos);
         Assert.AreEqual(GameState.Normal, result);
     }
 
