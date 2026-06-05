@@ -233,11 +233,11 @@ public static partial class PseudoMoveValidator
                 : MoveType.CastlingQueenSide;
         }
 
-        var newPos = pos.MakeMove(new Move(from, to, null, moveType));
+        var move = new Move(from, to, null, moveType);
         var kingSquare = piece.Type == PieceType.King
             ? to
             : pos.Board.GetKingSquare(piece.Color);
 
-        return !IsSquareAttacked(kingSquare, piece.Color, newPos);
+        return !IsSquareAttackedAfterMove(kingSquare, piece.Color, pos, move, piece);
     }
 }

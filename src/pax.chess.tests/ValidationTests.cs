@@ -283,6 +283,32 @@ public sealed class ValidationTests
     }
 
     [TestMethod]
+    public void PseudoValidator_EnPassantExposesKingAttack()
+    {
+        var pos = FenSerializer.Parse("4k3/8/8/r2pP2K/8/8/8/8 w - d6 0 1");
+        var move = new Move(new Square(4, 4), new Square(3, 5), null, MoveType.EnPassant);
+
+        var expected = MoveValidator.IsValidMove(move, pos);
+        var actual = PseudoMoveValidator.IsValidMove(move, pos);
+
+        Assert.AreEqual(MoveState.WouldBeCheck, actual);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    public void PseudoValidator_PromotionCaptureStillBlocksSlidingAttack()
+    {
+        var pos = FenSerializer.Parse("r4b1K/6P1/8/8/8/8/8/4k3 w - - 0 1");
+        var move = new Move(new Square(6, 6), new Square(5, 7), PieceType.Queen, MoveType.Capture | MoveType.Promotion);
+
+        var expected = MoveValidator.IsValidMove(move, pos);
+        var actual = PseudoMoveValidator.IsValidMove(move, pos);
+
+        Assert.AreEqual(MoveState.Ok, actual);
+        Assert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
     public void PseudoValidator_MatchesMoveValidatorForRepresentativeMoves()
     {
         var testCases = new[]
@@ -300,6 +326,17 @@ public sealed class ValidationTests
 
             Assert.AreEqual(expected, actual);
         }
+    }
+
+    [TestMethod]
+    public void PseudoValidator_GetGameStateDoesNotMutatePosition()
+    {
+        var pos = FenSerializer.Parse("r3k2r/ppp2ppp/2n5/3Pp3/8/2N5/PPP2PPP/R3K2R w KQkq e6 0 12");
+        string before = FenSerializer.Serialize(pos);
+
+        _ = PseudoMoveValidator.GetGameState(pos);
+
+        Assert.AreEqual(before, FenSerializer.Serialize(pos));
     }
 
     [TestMethod]

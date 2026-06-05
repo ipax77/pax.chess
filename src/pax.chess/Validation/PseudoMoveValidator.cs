@@ -76,13 +76,11 @@ public static partial class PseudoMoveValidator
             return MoveState.TargetInvalid;
         }
 
-        var newPos = pos.MakeMove(move);
-
         var kingSquare = piece.Type == PieceType.King
             ? move.To
             : pos.Board.GetKingSquare(piece.Color);
 
-        if (IsSquareAttacked(kingSquare, piece.Color, newPos))
+        if (IsSquareAttackedAfterMove(kingSquare, piece.Color, pos, move, piece))
             return MoveState.WouldBeCheck;
 
         return MoveState.Ok;
