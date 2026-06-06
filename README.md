@@ -29,12 +29,28 @@ using pax.chess;
 var game = new ChessGame();
 var move = new Move(new Square(4, 1), new Square(4, 3)); // e2e4
 
-var state = game.TryApplyMove(move);
+var state = game.ApplyMove(move);
 if (state == MoveState.Ok)
 {
     Console.WriteLine(game.CurrentPosition.SideToMove); // Black
 }
 ```
+
+### ChessGameOptions
+
+Use `ChessGameOptions.Engine` when moves come from an engine or another trusted source and are already validated. This skips move validation and post-move evaluation to reduce CPU work in engine-style pipelines.
+
+```csharp
+using pax.chess;
+
+var game = new ChessGame(ChessGameOptions.Engine);
+var move = new Move(new Square(4, 1), new Square(4, 3)); // e2e4
+
+game.ApplyMove(move);
+game.Evaluate(); // Evaluate explicitly when you need Result or Conclusion
+```
+
+The default `new ChessGame()` path keeps validation and evaluation enabled for normal application code.
 
 ## PGN
 
@@ -95,6 +111,7 @@ string uci = Uci.GetUci(game.Moves[0].Move); // "e2e4"
 
 ```csharp
 using pax.chess;
+using pax.chess.Analyze;
 
 var board = new AnalysisBoard();
 board.TryApplyMove(new Move(new Square(4, 1), new Square(4, 3))); // e2e4
@@ -104,8 +121,42 @@ board.TryApplyMove(new Move(new Square(3, 1), new Square(3, 3))); // d2d4 as sec
 Console.WriteLine(board.Root.Variations.Count); // 2
 ```
 
-## Development
+## Changelog
 
-```bash
-dotnet test
+### v0.7.0
+
+- Targets .NET 10.
+- Replaces the old game model with `ChessGame` and `ChessGameOptions`.
+- Adds `PgnSerializer` and `FenSerializer` for PGN/FEN parsing and serialization.
+- Adds UCI conversion helpers.
+- Adds `AnalysisBoard` support for move trees and variations.
+- Adds optional `ChessClock` support with timeout handling.
+- Adds Zobrist hashing and repetition tracking.
+- Adds the `PseudoMoveValidator` implementation and benchmark project.
+
+## Migrating from v0.6.6
+
+v0.7.0 is a breaking API update from the current live v0.6.6 package. The main type mappings are:
+
+| v0.6.6 | v0.7.0 |
+| --- | --- |
+| `Game` | `ChessGame` |
+| `EngineMove` | `Move` |
+| `Position` | `Square` |
+| `Pgn.MapString(...)` | `PgnSerializer.Parse(...)` |
+| `Pgn.MapPieces(...)` | `PgnSerializer.Serialize(...)` |
+| `Fen` helpers | `FenSerializer.Parse(...)` / `FenSerializer.Serialize(...)` |
+| `game.Move(...)` | `game.ApplyMove(...)` |
+
+Old DB mapping types are no longer part of the documented core library surface.
+
+For pre-validated engine output, create games with `ChessGameOptions.Engine` to skip validation and automatic evaluation:
+
+```csharp
+using pax.chess;
+
+var game = new ChessGame(ChessGameOptions.Engine);
+var engineMove = new Move(new Square(4, 1), new Square(4, 3)); // e2e4
+
+game.ApplyMove(engineMove);
 ```
