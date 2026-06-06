@@ -2,6 +2,15 @@ using pax.chess.Validation;
 
 namespace pax.chess;
 
+public readonly record struct MoveResult(
+    MoveState State,
+    Move? Move = null,
+    string? San = null,
+    string? Error = null)
+{
+    public bool IsOk => State == MoveState.Ok;
+}
+
 public sealed class ChessGame
 {
     public BoardPosition InitialPosition { get; }
@@ -76,19 +85,74 @@ public sealed class ChessGame
     {
         EnsureNotTerminated();
 
-        if (!_options.SkipValidation)
+        var state = ValidateMove(move);
+        if (state != MoveState.Ok)
+            return state;
+
+        ApplyValidatedMove(move, san);
+
+        return MoveState.Ok;
+    }
+
+    /// <summary>
+    /// Plays a move from UCI coordinate notation, such as <c>e2e4</c> or <c>e7e8q</c>.
+    /// </summary>
+    /// <param name="notation">The UCI move notation to parse and apply.</param>
+    /// <returns>The move state, parsed move, SAN text, and optional error text.</returns>
+    public MoveResult Play(string notation)
+    {
+        EnsureNotTerminated();
+
+        var result = CreateMoveResult(notation);
+        if (!result.IsOk || result.Move is null)
+            return result;
+
+        ApplyValidatedMove(result.Move, result.San);
+        return result;
+    }
+
+    /// <summary>
+    /// Serializes the current board position to FEN.
+    /// </summary>
+    /// <returns>The FEN representation of the current position.</returns>
+    public string ToFen() => FenSerializer.Serialize(CurrentPosition);
+
+    /// <summary>
+    /// Serializes the game moves and metadata to PGN.
+    /// </summary>
+    /// <returns>The PGN representation of the current game.</returns>
+    public string ToPgn() => PgnSerializer.Serialize(this);
+
+    private MoveState ValidateMove(Move move)
+    {
+        return _options.SkipValidation
+            ? MoveState.Ok
+            : PseudoMoveValidator.IsValidMove(move, CurrentPosition);
+    }
+
+    private MoveResult CreateMoveResult(string notation)
+    {
+        if (!TryCreateUciMove(notation, CurrentPosition, out var move) || move is null)
         {
-            var state = PseudoMoveValidator.IsValidMove(move, CurrentPosition);
-            if (state != MoveState.Ok)
-                return state;
+            return new MoveResult(
+                MoveState.TargetInvalid,
+                Error: "Move notation must be UCI coordinate notation, such as e2e4 or e7e8q.");
         }
 
+        var state = ValidateMove(move);
+        if (state != MoveState.Ok)
+            return new MoveResult(state, move, Error: $"Move is not legal: {state}.");
+
+        var san = PgnSerializer.ToSan(move, CurrentPosition);
+        return new MoveResult(MoveState.Ok, move, san);
+    }
+
+    private void ApplyValidatedMove(Move move, string? san)
+    {
         ExecuteMove(move, san);
 
         if (!_options.SkipEvaluation)
             Evaluate();
-
-        return MoveState.Ok;
     }
 
     private void ExecuteMove(Move move, string? san)
@@ -170,5 +234,91 @@ public sealed class ChessGame
     {
         if (Conclusion is not null)
             throw new InvalidOperationException("Game is already terminated.");
+    }
+
+    private static bool TryCreateUciMove(string? notation, BoardPosition position, out Move? move)
+    {
+        move = null;
+
+        if (string.IsNullOrWhiteSpace(notation))
+            return false;
+
+        ReadOnlySpan<char> value = notation.AsSpan().Trim();
+        if (value.Length is not (4 or 5))
+            return false;
+
+        int fromFile = GetFile(value[0]);
+        int fromRank = GetRank(value[1]);
+        int toFile = GetFile(value[2]);
+        int toRank = GetRank(value[3]);
+
+        if (fromFile < 0 || fromRank < 0 || toFile < 0 || toRank < 0)
+            return false;
+
+        PieceType? promotion = null;
+        if (value.Length == 5 && !TryGetPromotion(value[4], out promotion))
+            return false;
+
+        var from = new Square(fromFile, fromRank);
+        var to = new Square(toFile, toRank);
+        var moveType = GetMoveType(from, to, promotion, position);
+
+        move = new Move(from, to, promotion, moveType);
+        return true;
+
+        static int GetFile(char value)
+        {
+            char lower = ToLowerAscii(value);
+            return lower is >= 'a' and <= 'h' ? lower - 'a' : -1;
+        }
+
+        static int GetRank(char value) => value is >= '1' and <= '8' ? value - '1' : -1;
+
+        static bool TryGetPromotion(char value, out PieceType? promotion)
+        {
+            promotion = ToLowerAscii(value) switch
+            {
+                'q' => PieceType.Queen,
+                'r' => PieceType.Rook,
+                'b' => PieceType.Bishop,
+                'n' => PieceType.Knight,
+                _ => null
+            };
+
+            return promotion.HasValue;
+        }
+
+        static char ToLowerAscii(char value)
+            => value is >= 'A' and <= 'Z' ? (char)(value + ('a' - 'A')) : value;
+    }
+
+    private static MoveType GetMoveType(Square from, Square to, PieceType? promotion, BoardPosition position)
+    {
+        var piece = position.Board[from.Index];
+        var target = position.Board[to.Index];
+        var moveType = MoveType.None;
+
+        if (target.HasValue)
+            moveType |= MoveType.Capture;
+
+        if (promotion.HasValue)
+            moveType |= MoveType.Promotion;
+
+        if (piece?.Type == PieceType.King)
+        {
+            int fileDelta = to.File - from.File;
+            if (Math.Abs(fileDelta) > 1)
+                moveType |= fileDelta > 0 ? MoveType.CastlingKingSide : MoveType.CastlingQueenSide;
+        }
+
+        if (piece?.Type == PieceType.Pawn &&
+            position.EnPassantTarget == to &&
+            from.File != to.File &&
+            !target.HasValue)
+        {
+            moveType |= MoveType.EnPassant | MoveType.Capture;
+        }
+
+        return moveType;
     }
 }

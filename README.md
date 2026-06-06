@@ -36,6 +36,40 @@ if (state == MoveState.Ok)
 }
 ```
 
+### Play UCI Moves
+
+Use `Play` for concise UCI coordinate moves and the serializer helpers for the current position or full game.
+
+```csharp
+using pax.chess;
+
+var game = new ChessGame();
+
+game.Play("e2e4");
+game.Play("e7e5");
+game.Play("g1f3");
+
+Console.WriteLine(game.ToFen());
+Console.WriteLine(game.ToPgn());
+```
+
+`Play` returns a `MoveResult` with the parsed move, SAN, state, and optional error text.
+
+```csharp
+var result = game.Play("b8c6");
+
+if (result.IsOk)
+{
+    Console.WriteLine(result.San); // Nc6
+}
+else
+{
+    Console.WriteLine(result.Error);
+}
+```
+
+`Play` accepts UCI notation such as `e2e4` and `e7e8q`. Use `PgnSerializer.Parse(...)` for SAN/PGN text.
+
 ### ChessGameOptions
 
 Use `ChessGameOptions.Engine` when moves come from an engine or another trusted source and are already validated. This skips move validation and post-move evaluation to reduce CPU work in engine-style pipelines.
@@ -127,6 +161,7 @@ Console.WriteLine(board.Root.Variations.Count); // 2
 
 - Targets .NET 10.
 - Replaces the old game model with `ChessGame` and `ChessGameOptions`.
+- Adds `ChessGame.Play(...)`, `ToFen()`, and `ToPgn()` convenience helpers.
 - Adds `PgnSerializer` and `FenSerializer` for PGN/FEN parsing and serialization.
 - Adds UCI conversion helpers.
 - Adds `AnalysisBoard` support for move trees and variations.
