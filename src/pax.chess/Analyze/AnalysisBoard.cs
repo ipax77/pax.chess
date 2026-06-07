@@ -208,7 +208,9 @@ public sealed class AnalysisBoard
             var engineMove = Uci.GetUci(move);
             sb.Append(engineMove + " ");
         }
-        sb.Length--;
+        if (sb.Length > 0)
+            sb.Length--;
+
         return sb.ToString();
     }
 
